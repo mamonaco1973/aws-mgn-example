@@ -4,6 +4,7 @@
 # Resolved dynamically from the Canonical account (099720109477). 22.04 (Jammy)
 # ships with kernel 5.15 which is within MGN's supported range (3.x – 6.8).
 # 24.04 AMIs now ship with kernels above 6.8 and will fail agent installation.
+# Note: 22.04 AMIs use the hvm-ssd prefix; hvm-ssd-gp3 was introduced with 24.04.
 # ================================================================================
 
 data "aws_ami" "ubuntu" {
@@ -12,7 +13,7 @@ data "aws_ami" "ubuntu" {
 
   filter {
     name   = "name"
-    values = ["ubuntu/images/hvm-ssd-gp3/ubuntu-jammy-22.04-amd64-server-*"]
+    values = ["ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"]
   }
 
   filter {
