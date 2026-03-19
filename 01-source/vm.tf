@@ -1,8 +1,9 @@
 # ================================================================================
-# Ubuntu 24.04 LTS AMI — us-east-2
+# Ubuntu 22.04 LTS AMI — us-east-2
 #
-# Resolved dynamically from the Canonical account (099720109477) so the latest
-# patched image is always used without hardcoding an AMI ID.
+# Resolved dynamically from the Canonical account (099720109477). 22.04 (Jammy)
+# ships with kernel 5.15 which is within MGN's supported range (3.x – 6.8).
+# 24.04 AMIs now ship with kernels above 6.8 and will fail agent installation.
 # ================================================================================
 
 data "aws_ami" "ubuntu" {
@@ -11,7 +12,7 @@ data "aws_ami" "ubuntu" {
 
   filter {
     name   = "name"
-    values = ["ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-amd64-server-*"]
+    values = ["ubuntu/images/hvm-ssd-gp3/ubuntu-jammy-22.04-amd64-server-*"]
   }
 
   filter {
@@ -23,9 +24,9 @@ data "aws_ami" "ubuntu" {
 # ================================================================================
 # Source EC2 Instance — us-east-2
 #
-# Ubuntu 24.04 LTS. User-data installs Apache so the workload can be verified
-# before and after migration. Canonical's EC2 images ship linux-aws kernel,
-# which is fully supported by MGN — no kernel swap required.
+# Ubuntu 22.04 LTS. User-data installs Apache so the workload can be verified
+# before and after migration. 22.04 ships with kernel 5.15 which is within
+# MGN's supported ceiling of 6.8.
 # ================================================================================
 
 resource "aws_instance" "main" {
