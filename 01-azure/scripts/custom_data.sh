@@ -18,3 +18,7 @@ sudo systemctl start apache2
 # ------------------------------------------------------------------------------
 
 echo "Welcome to Apache - Deployed in Azure" | sudo tee /var/www/html/index.html
+
+cd /root
+sudo wget -O ./aws-replication-installer-init https://aws-application-migration-service-us-east-1.s3.us-east-1.amazonaws.com/latest/linux/aws-replication-installer-init
+
