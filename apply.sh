@@ -35,4 +35,11 @@ echo "NOTE: Deploying 02-mgn..."
 terraform -chdir="${SCRIPT_DIR}/02-mgn" init
 terraform -chdir="${SCRIPT_DIR}/02-mgn" apply -auto-approve
 
-echo "NOTE: Deployment complete. Run ./connect.sh to SSH into the Azure VM."
+# --------------------------------------------------------------------------------
+# Phase 3 — MGN agent installation on Azure source VM
+# Fetches credentials from Secrets Manager and runs the installer via SSH.
+# --------------------------------------------------------------------------------
+# echo "NOTE: Installing MGN agent on Azure source VM..."
+# "${SCRIPT_DIR}/install_agent.sh"
+
+# echo "NOTE: Deployment complete. The MGN agent is registered and replicating."
