@@ -1,9 +1,12 @@
 # ==============================================================================
-# Security Group for Migrated Test / Cutover Instances
+# Security Group — MGN Replication Servers and Launched Instances
 #
-# Applied to every instance MGN launches (test launch and cutover). SSH (22)
-# allows post-migration validation; HTTP (80) verifies Apache survived the
-# migration. Open CIDRs are acceptable for a short-lived demo environment.
+# This SG is used for two purposes:
+#   1. Replication servers (passed via --replication-servers-security-groups-ids)
+#      TCP 1500 inbound is required for the source agent to stream disk data.
+#   2. Test launch and cutover instances — SSH (22) and HTTP (80) for validation.
+#
+# Open CIDRs are acceptable for a short-lived demo environment.
 # ==============================================================================
 
 resource "aws_security_group" "mgn_target" {
@@ -23,6 +26,16 @@ resource "aws_security_group" "mgn_target" {
     description = "HTTP"
     from_port   = 80
     to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # MGN replication data plane — source agent connects to replication servers
+  # on TCP 1500 to stream disk data. Required when dataPlaneRouting=PUBLIC_IP.
+  ingress {
+    description = "MGN replication"
+    from_port   = 1500
+    to_port     = 1500
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }

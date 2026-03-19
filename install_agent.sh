@@ -96,7 +96,8 @@ echo "NOTE: Running MGN agent installer..."
 
 # --------------------------------------------------------------------------------
 # Install the MGN agent on the source VM
-# PYTHONUNBUFFERED=1 forces all output to flush immediately so nothing is lost.
+# PYTHONUNBUFFERED=1 ensures stdout flushes immediately. stderr is merged into
+# stdout (2>&1) so all output is visible — the installer writes errors to both.
 # --------------------------------------------------------------------------------
 ssh -o StrictHostKeyChecking=accept-new \
     -o ServerAliveInterval=30 \
@@ -107,9 +108,7 @@ ssh -o StrictHostKeyChecking=accept-new \
        --region ${MGN_REGION} \
        --aws-access-key-id ${ACCESS_KEY_ID} \
        --aws-secret-access-key ${SECRET_ACCESS_KEY} \
-       --no-prompt 2>/tmp/mgn-stderr.log; \
-     echo \"Exit: \$?\"; \
-     echo '--- stderr ---'; \
-     cat /tmp/mgn-stderr.log"
+       --no-prompt 2>&1; \
+     echo \"Exit: \$?\""
 
 echo "NOTE: MGN agent installation complete."

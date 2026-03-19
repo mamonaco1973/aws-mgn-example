@@ -31,7 +31,7 @@ aws mgn create-replication-configuration-template \
   --associate-default-security-group \
   --bandwidth-throttling 0 \
   --create-public-ip \
-  --data-plane-routing PRIVATE_IP \
+  --data-plane-routing PUBLIC_IP \
   --default-large-staging-disk-type GP2 \
   --ebs-encryption DEFAULT \
   --replication-server-instance-type "${REPLICATION_INSTANCE_TYPE}" \
