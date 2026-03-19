@@ -3,46 +3,93 @@ set -euo pipefail
 
 AWS_REGION="$1"
 STAGING_SUBNET_ID="$2"
-REPLICATION_INSTANCE_TYPE="$3"
-USE_PRIVATE_IP="$4"
-TARGET_SECURITY_GROUP_ID="$5"
+TARGET_SECURITY_GROUP_ID="$3"
+REPLICATION_INSTANCE_TYPE="$4"
+USE_PRIVATE_IP="$5"
 
 echo "=============================================================="
 echo "Initializing AWS MGN in region: ${AWS_REGION}"
 echo "=============================================================="
 
+# ------------------------------------------------------------------
+# Initialize the service
+# ------------------------------------------------------------------
+
 aws mgn initialize-service \
-  --region "${AWS_REGION}" || true
+  --region "${AWS_REGION}"
+
+# ------------------------------------------------------------------
+# Create the replication configuration template
+# ------------------------------------------------------------------
 
 echo "=============================================================="
-echo "Updating replication configuration template"
+echo "Creating replication configuration template"
 echo "=============================================================="
 
-TEMPLATE_ID="$(aws mgn describe-replication-configuration-templates \
+aws mgn create-replication-configuration-template \
+  --region "${AWS_REGION}" \
+  --associate-default-security-group \
+  --bandwidth-throttling 0 \
+  --create-public-ip \
+  --data-plane-routing PRIVATE_IP \
+  --default-large-staging-disk-type GP2 \
+  --ebs-encryption DEFAULT \
+  --pit-policy '[]' \
+  --replication-server-instance-type "${REPLICATION_INSTANCE_TYPE}" \
+  --replication-servers-security-groups-ids "${TARGET_SECURITY_GROUP_ID}" \
+  --staging-area-subnet-id "${STAGING_SUBNET_ID}" \
+  --use-dedicated-replication-server \
+  --no-use-private-ip \
+  >/tmp/mgn-replication-template.json 2>/tmp/mgn-replication-template.err || true
+
+# ------------------------------------------------------------------
+# If the template already exists, do not fail the run
+# ------------------------------------------------------------------
+
+if aws mgn describe-replication-configuration-templates \
   --region "${AWS_REGION}" \
   --query 'items[0].replicationConfigurationTemplateID' \
-  --output text)"
-
-if [ -z "${TEMPLATE_ID}" ] || [ "${TEMPLATE_ID}" = "None" ]; then
-  echo "ERROR: No replication configuration template found."
+  --output text >/tmp/mgn-template-id.txt 2>/dev/null; then
+  echo "Replication template exists."
+else
+  echo "ERROR: Failed to verify replication template."
+  cat /tmp/mgn-replication-template.err || true
   exit 1
 fi
 
-aws mgn update-replication-configuration-template \
+# ------------------------------------------------------------------
+# Create the launch configuration template
+# ------------------------------------------------------------------
+
+echo "=============================================================="
+echo "Creating launch configuration template"
+echo "=============================================================="
+
+aws mgn create-launch-configuration-template \
   --region "${AWS_REGION}" \
-  --replication-configuration-template-id "${TEMPLATE_ID}" \
-  --staging-area-subnet-id "${STAGING_SUBNET_ID}" \
-  --replication-server-instance-type "${REPLICATION_INSTANCE_TYPE}" \
-  --use-private-ip-for-replication "${USE_PRIVATE_IP}"
+  --boot-mode UEFI \
+  --copy-private-ip \
+  --copy-tags \
+  --launch-disposition STOPPED \
+  --licensing-os-byol false \
+  --target-instance-type-right-sizing-method NONE \
+  >/tmp/mgn-launch-template.json 2>/tmp/mgn-launch-template.err || true
 
-echo "=============================================================="
-echo "Reading launch configuration templates"
-echo "=============================================================="
+# ------------------------------------------------------------------
+# Verify the launch configuration template exists
+# ------------------------------------------------------------------
 
-aws mgn describe-launch-configuration-templates \
+if aws mgn describe-launch-configuration-templates \
   --region "${AWS_REGION}" \
-  --output table || true
+  --query 'items[0].launchConfigurationTemplateID' \
+  --output text >/tmp/mgn-launch-template-id.txt 2>/dev/null; then
+  echo "Launch template exists."
+else
+  echo "ERROR: Failed to verify launch configuration template."
+  cat /tmp/mgn-launch-template.err || true
+  exit 1
+fi
 
 echo "=============================================================="
-echo "MGN initialization complete"
+echo "AWS MGN initialization complete"
 echo "=============================================================="

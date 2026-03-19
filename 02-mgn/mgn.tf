@@ -4,7 +4,7 @@
 
 resource "aws_security_group" "mgn_target" {
   name        = "${var.name_prefix}-target-sg"
-  description = "Security group for MGN-launched test instances"
+  description = "Security group for MGN-launched test and cutover instances"
   vpc_id      = aws_vpc.mgn.id
 
   ingress {
@@ -37,20 +37,24 @@ resource "aws_security_group" "mgn_target" {
 }
 
 # ==============================================================================
-# MGN service initialization
-# - Uses AWS CLI because that is the supported automation path
-# - Safe first pass for a lab / demo repo
+# Initialize AWS MGN and create the required account-level templates
+#
+# Notes
+# - For API / CLI initialization, AWS requires:
+#   1) IAM roles
+#   2) replication template
+#   3) launch template
+# - We create the IAM roles in iam.tf
+# - We then run the AWS CLI from local-exec to finish initialization
 # ==============================================================================
 
 resource "null_resource" "mgn_initialize" {
-  count = var.create_mgn_init ? 1 : 0
-
   triggers = {
-    aws_region                        = var.aws_region
-    staging_subnet_id                 = aws_subnet.staging.id
-    replication_server_instance_type  = var.replication_server_instance_type
-    use_private_ip_for_replication    = tostring(var.use_private_ip_for_replication)
-    target_security_group_id          = aws_security_group.mgn_target.id
+    aws_region                       = var.aws_region
+    staging_subnet_id                = aws_subnet.staging.id
+    target_security_group_id         = aws_security_group.mgn_target.id
+    replication_server_instance_type = var.replication_server_instance_type
+    use_private_ip_for_replication   = tostring(var.use_private_ip_for_replication)
   }
 
   provisioner "local-exec" {
@@ -58,14 +62,27 @@ resource "null_resource" "mgn_initialize" {
       bash scripts/init_mgn.sh \
         "${var.aws_region}" \
         "${aws_subnet.staging.id}" \
+        "${aws_security_group.mgn_target.id}" \
         "${var.replication_server_instance_type}" \
-        "${var.use_private_ip_for_replication}" \
-        "${aws_security_group.mgn_target.id}"
+        "${var.use_private_ip_for_replication}"
     EOT
   }
 
   depends_on = [
     aws_subnet.staging,
-    aws_security_group.mgn_target
+    aws_security_group.mgn_target,
+    aws_iam_role.mgn_replication_server,
+    aws_iam_role_policy_attachment.mgn_replication_server,
+    aws_iam_role.mgn_conversion_server,
+    aws_iam_role_policy_attachment.mgn_conversion_server,
+    aws_iam_role.mgn_mgh,
+    aws_iam_role_policy_attachment.mgn_mgh,
+    aws_iam_role.mgn_launch_with_drs,
+    aws_iam_role_policy_attachment.mgn_launch_with_drs_ssm,
+    aws_iam_role_policy_attachment.mgn_launch_with_drs_edr,
+    aws_iam_role.mgn_launch_with_ssm,
+    aws_iam_role_policy_attachment.mgn_launch_with_ssm,
+    aws_iam_role.mgn_agent,
+    aws_iam_role_policy_attachment.mgn_agent
   ]
 }
