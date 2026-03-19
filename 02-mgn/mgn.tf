@@ -1,5 +1,9 @@
 # ==============================================================================
-# Security group for migrated test / cutover instances
+# Security Group for Migrated Test / Cutover Instances
+#
+# Applied to every instance MGN launches (test launch and cutover). SSH (22)
+# allows post-migration validation; HTTP (80) verifies Apache survived the
+# migration. Open CIDRs are acceptable for a short-lived demo environment.
 # ==============================================================================
 
 resource "aws_security_group" "mgn_target" {
@@ -49,6 +53,8 @@ resource "aws_security_group" "mgn_target" {
 # ==============================================================================
 
 resource "null_resource" "mgn_initialize" {
+  # Trigger re-initialization whenever network or instance-type config changes,
+  # ensuring the replication template stays in sync with Terraform state.
   triggers = {
     aws_region                       = var.aws_region
     staging_subnet_id                = aws_subnet.staging.id
@@ -57,6 +63,9 @@ resource "null_resource" "mgn_initialize" {
     use_private_ip_for_replication   = tostring(var.use_private_ip_for_replication)
   }
 
+  # Calls init_mgn.sh which runs `aws mgn initialize-service`,
+  # creates the replication configuration template, and creates the
+  # launch configuration template via the AWS CLI.
   provisioner "local-exec" {
     command = <<-EOT
       bash scripts/init_mgn.sh \
@@ -68,6 +77,8 @@ resource "null_resource" "mgn_initialize" {
     EOT
   }
 
+  # All IAM roles must exist before MGN initialization; the CLI calls fail
+  # with AccessDenied if the service-linked roles are not yet propagated.
   depends_on = [
     aws_subnet.staging,
     aws_security_group.mgn_target,

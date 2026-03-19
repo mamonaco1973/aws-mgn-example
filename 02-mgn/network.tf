@@ -1,5 +1,8 @@
 # ==============================================================================
 # VPC
+#
+# Dedicated VPC for the MGN target environment. DNS support and hostnames
+# are enabled so MGN replication servers can resolve AWS service endpoints.
 # ==============================================================================
 
 resource "aws_vpc" "mgn" {
@@ -13,7 +16,10 @@ resource "aws_vpc" "mgn" {
 }
 
 # ==============================================================================
-# Internet gateway
+# Internet Gateway
+#
+# Required for replication servers and cutover instances to reach AWS MGN
+# service endpoints and for operators to SSH into migrated instances.
 # ==============================================================================
 
 resource "aws_internet_gateway" "mgn" {
@@ -25,7 +31,10 @@ resource "aws_internet_gateway" "mgn" {
 }
 
 # ==============================================================================
-# Public subnet
+# Public Subnet
+#
+# Receives test and cutover instances after migration. Public IPs are
+# auto-assigned so instances are reachable for post-migration validation.
 # ==============================================================================
 
 resource "aws_subnet" "public" {
@@ -40,7 +49,11 @@ resource "aws_subnet" "public" {
 }
 
 # ==============================================================================
-# Staging subnet for MGN replication servers
+# Staging Subnet for MGN Replication Servers
+#
+# MGN launches replication servers into this subnet. Separating staging from
+# the public subnet limits the blast radius if a replication server is
+# compromised and allows tighter NACLs on replication traffic.
 # ==============================================================================
 
 resource "aws_subnet" "staging" {
@@ -54,7 +67,10 @@ resource "aws_subnet" "staging" {
 }
 
 # ==============================================================================
-# Public route table
+# Public Route Table
+#
+# Default route via the IGW allows both the public and staging subnets to
+# reach internet-hosted AWS service endpoints needed by MGN replication.
 # ==============================================================================
 
 resource "aws_route_table" "public" {
@@ -70,11 +86,13 @@ resource "aws_route_table" "public" {
   }
 }
 
+# Associates the public subnet with the internet-routable route table.
 resource "aws_route_table_association" "public" {
   subnet_id      = aws_subnet.public.id
   route_table_id = aws_route_table.public.id
 }
 
+# Staging subnet also needs internet access for MGN service API calls.
 resource "aws_route_table_association" "staging" {
   subnet_id      = aws_subnet.staging.id
   route_table_id = aws_route_table.public.id

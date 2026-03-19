@@ -63,3 +63,28 @@ else
 fi
 
 
+# ------------------------------------------------------------------------------
+# AWS Authentication Check
+# ------------------------------------------------------------------------------
+# Validate AWS CLI credentials by calling STS GetCallerIdentity.
+# This confirms credentials and region configuration are working.
+# ------------------------------------------------------------------------------
+
+echo "NOTE: Checking AWS cli connection."
+
+aws sts get-caller-identity --query "Account" --output text >> /dev/null
+
+# ------------------------------------------------------------------------------
+# AWS Login Result
+# ------------------------------------------------------------------------------
+# Check exit code of the AWS CLI command to confirm authentication.
+# ------------------------------------------------------------------------------
+
+if [ $? -ne 0 ]; then
+  echo "ERROR: Failed to connect to AWS. Please check your credentials and environment variables."
+  exit 1
+else
+  echo "NOTE: Successfully logged into AWS."
+fi
+
+
