@@ -35,7 +35,7 @@ resource "aws_instance" "main" {
   subnet_id              = aws_subnet.main.id
   vpc_security_group_ids = [aws_security_group.main.id]
 
-  user_data = filebase64("scripts/user_data.sh")
+  user_data = file("scripts/user_data.sh")
 
   tags = {
     Name = "${var.prefix}-source-vm"
