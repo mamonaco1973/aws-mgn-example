@@ -34,13 +34,11 @@ aws mgn create-replication-configuration-template \
   --data-plane-routing PRIVATE_IP \
   --default-large-staging-disk-type GP2 \
   --ebs-encryption DEFAULT \
-  --pit-policy '[]' \
   --replication-server-instance-type "${REPLICATION_INSTANCE_TYPE}" \
   --replication-servers-security-groups-ids "${TARGET_SECURITY_GROUP_ID}" \
   --staging-area-subnet-id "${STAGING_SUBNET_ID}" \
   --staging-area-tags Name=mgn-staging,Project=mgn-lab \
   --use-dedicated-replication-server \
-  --no-use-private-ip \
   >/tmp/mgn-replication-template.json 2>/tmp/mgn-replication-template.err || true
 
 # ------------------------------------------------------------------
