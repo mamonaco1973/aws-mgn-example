@@ -107,7 +107,6 @@ resource "null_resource" "mgn_initialize" {
     aws_iam_role.mgn_launch_with_ssm,
     aws_iam_role_policy_attachment.mgn_launch_with_ssm,
     aws_iam_role.mgn_agent,
-    aws_iam_role_policy_attachment.mgn_agent,
-    aws_iam_service_linked_role.mgn
+    aws_iam_role_policy_attachment.mgn_agent
   ]
 }
