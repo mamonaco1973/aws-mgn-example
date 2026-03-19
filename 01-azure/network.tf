@@ -45,6 +45,17 @@ resource "azurerm_network_security_group" "main" {
   }
 }
 
+# ==================================================================================================
+# Random suffix for VM prefix
+# - Ensures each deployment produces a unique public DNS label
+# - Stored in state so it does not change on every terraform apply
+# ==================================================================================================
+resource "random_string" "vm_suffix" {
+  length  = 6
+  upper   = false
+  special = false
+}
+
 # Public IP
 resource "azurerm_public_ip" "main" {
   name                = "${var.prefix}-pip"
@@ -52,8 +63,7 @@ resource "azurerm_public_ip" "main" {
   resource_group_name = azurerm_resource_group.main.name
   allocation_method   = "Dynamic"
   sku                 = "Basic"
-
-  domain_name_label = "${var.prefix}-vm-${substr(data.azurerm_client_config.current.subscription_id, 0, 6)}"
+  domain_name_label = "${var.prefix}-vm-${random_string.vm_suffix.result}"
 }
 
 # Network Interface

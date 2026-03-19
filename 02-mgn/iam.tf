@@ -139,6 +139,7 @@ resource "aws_iam_role_policy_attachment" "mgn_launch_with_ssm" {
 
 # ==============================================================================
 # AWSApplicationMigrationAgentRole
+# - Keep this role if MGN needs to assume it internally
 # ==============================================================================
 
 resource "aws_iam_role" "mgn_agent" {
@@ -149,4 +150,56 @@ resource "aws_iam_role" "mgn_agent" {
 resource "aws_iam_role_policy_attachment" "mgn_agent" {
   role       = aws_iam_role.mgn_agent.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSApplicationMigrationAgentPolicy_v2"
+}
+
+# ==============================================================================
+# MGN agent installation user
+# - Dedicated IAM user whose access key is supplied to the source-side agent
+# - Uses AWSApplicationMigrationAgentPolicy per AWS docs
+# ==============================================================================
+
+resource "aws_iam_user" "mgn_agent" {
+  name = "mgn-agent-user"
+  path = "/service-users/"
+}
+
+resource "aws_iam_user_policy_attachment" "mgn_agent" {
+  user       = aws_iam_user.mgn_agent.name
+  policy_arn = "arn:aws:iam::aws:policy/AWSApplicationMigrationAgentPolicy"
+}
+
+# ==============================================================================
+# MGN agent access key
+# - Generated once and stored only in Secrets Manager
+# ==============================================================================
+
+resource "aws_iam_access_key" "mgn_agent" {
+  user = aws_iam_user.mgn_agent.name
+}
+
+# ==============================================================================
+# Secrets Manager secret for MGN agent credentials
+# - Secret JSON includes access key id and secret access key
+# - Recovery window set to 0 for easier rebuilds in test environments
+# ==============================================================================
+
+resource "aws_secretsmanager_secret" "mgn_agent" {
+  name                    = "mgn-agent-credentials"
+  description             = "AWS credentials for AWS MGN replication agent install"
+  recovery_window_in_days = 0
+
+  tags = {
+    Name    = "mgn-agent-credentials"
+    Service = "mgn"
+  }
+}
+
+resource "aws_secretsmanager_secret_version" "mgn_agent" {
+  secret_id = aws_secretsmanager_secret.mgn_agent.id
+
+  secret_string = jsonencode({
+    username          = aws_iam_user.mgn_agent.name
+    access_key_id     = aws_iam_access_key.mgn_agent.id
+    secret_access_key = aws_iam_access_key.mgn_agent.secret
+  })
 }
