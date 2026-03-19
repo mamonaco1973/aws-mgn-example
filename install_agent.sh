@@ -96,21 +96,17 @@ echo "NOTE: Running MGN agent installer..."
 
 # --------------------------------------------------------------------------------
 # Install the MGN agent on the source VM
-# nohup prevents the installer from dying if the SSH session drops mid-download.
-# ServerAliveInterval keeps the connection alive during the long agent download.
-# Output is tee'd to a log file so we can review it after the session ends.
+# PYTHONUNBUFFERED=1 forces all output to flush immediately so nothing is lost.
 # --------------------------------------------------------------------------------
-SSH_OPTS="-o StrictHostKeyChecking=accept-new -o ServerAliveInterval=30 -o ServerAliveCountMax=10"
-MGN_LOG="/tmp/mgn-install.log"
-
-# shellcheck disable=SC2086
-ssh ${SSH_OPTS} -i "${PEM_FILE}" "${SSH_USER}@${FQDN}" \
+ssh -o StrictHostKeyChecking=accept-new \
+    -o ServerAliveInterval=30 \
+    -o ServerAliveCountMax=10 \
+    -i "${PEM_FILE}" "${SSH_USER}@${FQDN}" \
     "sudo chmod +x /root/aws-replication-installer-init && \
-     sudo nohup /root/aws-replication-installer-init \
+     sudo PYTHONUNBUFFERED=1 /root/aws-replication-installer-init \
        --region ${AWS_REGION} \
        --aws-access-key-id ${ACCESS_KEY_ID} \
        --aws-secret-access-key ${SECRET_ACCESS_KEY} \
-       --no-prompt 2>&1 | sudo tee ${MGN_LOG}; \
-     echo \"Exit code: \$?\""
+       --no-prompt"
 
-echo "NOTE: MGN agent installation complete. Full log at ${MGN_LOG} on the source VM."
+echo "NOTE: MGN agent installation complete."
