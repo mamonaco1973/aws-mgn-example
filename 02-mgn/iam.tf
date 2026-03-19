@@ -83,10 +83,15 @@ data "aws_iam_policy_document" "mgn_agent_assume_role" {
 # Attached to EC2 replication servers that MGN launches in the staging
 # subnet. Grants permissions to read/write replication data in S3 and
 # communicate with the MGN control plane.
+#
+# NOTE:
+# Must be created under /service-role/ so the AWS MGN service-linked role
+# can pass it during RunInstances.
 # ==============================================================================
 
 resource "aws_iam_role" "mgn_replication_server" {
   name               = "AWSApplicationMigrationReplicationServerRole"
+  path               = "/service-role/"
   assume_role_policy = data.aws_iam_policy_document.ec2_assume_role.json
 }
 
@@ -100,10 +105,15 @@ resource "aws_iam_role_policy_attachment" "mgn_replication_server" {
 #
 # Attached to conversion servers that MGN launches to convert source disks
 # into EBS volumes during the cutover process.
+#
+# NOTE:
+# Must be created under /service-role/ so the AWS MGN service-linked role
+# can pass it during launch workflows.
 # ==============================================================================
 
 resource "aws_iam_role" "mgn_conversion_server" {
   name               = "AWSApplicationMigrationConversionServerRole"
+  path               = "/service-role/"
   assume_role_policy = data.aws_iam_policy_document.ec2_assume_role.json
 }
 
@@ -135,10 +145,15 @@ resource "aws_iam_role_policy_attachment" "mgn_mgh" {
 # Applied to instances launched by MGN that also integrate with Elastic
 # Disaster Recovery (DRS). Combines SSM core access (for Session Manager
 # and Patch Manager) with the DRS EC2 instance policy.
+#
+# NOTE:
+# Keeping launch roles under /service-role/ for consistency with AWS
+# service-managed roles used by MGN/DRS launch workflows.
 # ==============================================================================
 
 resource "aws_iam_role" "mgn_launch_with_drs" {
   name               = "AWSApplicationMigrationLaunchInstanceWithDrsRole"
+  path               = "/service-role/"
   assume_role_policy = data.aws_iam_policy_document.ec2_assume_role.json
 }
 
@@ -160,10 +175,15 @@ resource "aws_iam_role_policy_attachment" "mgn_launch_with_drs_edr" {
 # Applied to instances launched by MGN without DRS integration. SSM core
 # access enables Session Manager, Run Command, and patch compliance on
 # migrated instances without requiring open SSH ports.
+#
+# NOTE:
+# Keeping launch roles under /service-role/ for consistency with AWS
+# service-managed roles used by MGN launch workflows.
 # ==============================================================================
 
 resource "aws_iam_role" "mgn_launch_with_ssm" {
   name               = "AWSApplicationMigrationLaunchInstanceWithSsmRole"
+  path               = "/service-role/"
   assume_role_policy = data.aws_iam_policy_document.ec2_assume_role.json
 }
 
