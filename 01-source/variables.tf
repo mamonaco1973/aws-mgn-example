@@ -25,7 +25,7 @@ variable "subnet_cidr" {
 variable "instance_type" {
   description = "EC2 instance type for the source VM"
   type        = string
-  default     = "t3.micro"
+  default     = "t3.medium"
 }
 
 variable "admin_username" {
