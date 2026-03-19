@@ -8,6 +8,25 @@
 data "aws_caller_identity" "current" {}
 
 # ==============================================================================
+# MGN Service-Linked Role
+#
+# Grants the MGN service itself the EC2 permissions it needs to create and
+# manage replication servers, security groups, and network interfaces in the
+# staging subnet. initialize-service creates this automatically, but declaring
+# it here ensures it exists before any replication activity begins.
+# Terraform ignores this if the role already exists.
+# ==============================================================================
+
+resource "aws_iam_service_linked_role" "mgn" {
+  aws_service_name = "mgn.amazonaws.com"
+
+  lifecycle {
+    ignore_changes        = [aws_service_name]
+    create_before_destroy = false
+  }
+}
+
+# ==============================================================================
 # IAM Assume-Role Policies
 #
 # Shared trust policy documents reused across multiple roles. Keeping them
