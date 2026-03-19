@@ -2,19 +2,19 @@
 
 ## Project Overview
 
-This project demonstrates a cross-cloud VM migration from **Microsoft Azure** (source) to **AWS** (target) using **AWS Application Migration Service (MGN)**. It provisions source infrastructure in Azure and target infrastructure in AWS, then initializes the MGN service.
+This project demonstrates VM migration using **AWS Application Migration Service (MGN)**. The source is an EC2 instance in **us-east-2**; the target is **us-east-1**. Using same-cloud cross-region migration keeps the demo self-contained and avoids OS kernel compatibility issues present in cross-cloud migrations.
 
 ## Project Structure
 
 ```
 aws-mgn-example/
-├── 01-azure/           # Phase 1: Azure source environment (Terraform)
+├── 01-source/             # Phase 1: EC2 source environment in us-east-2 (Terraform)
 │   ├── scripts/
-│   │   └── custom_data.sh    # VM startup: installs Apache, downloads MGN agent
-│   ├── main.tf               # Provider setup, resource group
-│   ├── network.tf            # VNet, subnet, NSG (SSH+HTTP), public IP
-│   ├── vm.tf                 # Ubuntu 24.04 VM, SSH key generation
-│   └── variables.tf          # prefix, location, vm_size, admin_username
+│   │   └── user_data.sh      # VM startup: installs Apache
+│   ├── main.tf               # Provider setup, SSH key pair
+│   ├── network.tf            # VPC, subnet, IGW, route table, security group
+│   ├── vm.tf                 # Ubuntu 24.04 EC2 instance, AMI lookup
+│   └── variables.tf          # prefix, aws_region, vpc_cidr, instance_type
 ├── 02-mgn/             # Phase 2: AWS MGN target environment (Terraform)
 │   ├── scripts/
 │   │   └── init_mgn.sh       # Initializes MGN service via AWS CLI
@@ -25,7 +25,9 @@ aws-mgn-example/
 │   ├── outputs.tf            # VPC ID, subnet IDs, next-step instructions
 │   └── variables.tf          # aws_region, vpc_cidr, subnet CIDRs, instance type
 ├── apply.sh            # Deploy both phases in order
-├── check_env.sh        # Validate CLI tools and Azure credentials
+├── check_env.sh        # Validate CLI tools and AWS credentials
+├── connect.sh          # SSH into the source EC2 instance
+├── install_agent.sh    # Install MGN agent on the source VM (Phase 3)
 ├── destroy.sh          # Destroy both phases in reverse order
 └── .gitignore          # Excludes .terraform/, *.tfstate, *.pem
 ```
@@ -35,41 +37,35 @@ aws-mgn-example/
 ### Prerequisites
 
 - `terraform` >= 1.5.0
-- `aws` (AWS CLI, configured with valid credentials)
-- `az` (Azure CLI)
-- Azure service principal credentials set as environment variables:
-  - `ARM_CLIENT_ID`
-  - `ARM_CLIENT_SECRET`
-  - `ARM_SUBSCRIPTION_ID`
-  - `ARM_TENANT_ID`
+- `aws` (AWS CLI, configured with valid credentials for both us-east-2 and us-east-1)
 
 ### Deploy
 
 ```bash
-./check_env.sh   # Validate tools and Azure login
-./apply.sh       # Deploy 01-azure, then 02-mgn (auto-approves)
+./check_env.sh   # Validate tools and AWS credentials
+./apply.sh       # Deploy 01-source, then 02-mgn (auto-approves)
 ```
 
 ### Destroy
 
 ```bash
-./destroy.sh     # Destroys 02-mgn first, then 01-azure
+./destroy.sh     # Destroys 02-mgn first, then 01-source
 ```
 
 ## Phase Details
 
-### Phase 1 — Azure (`01-azure/`)
+### Phase 1 — AWS Source (`01-source/`)
 
-Creates the migration source:
-- Ubuntu 24.04 LTS VM (`Standard_B1s`)
-- VNet `10.0.0.0/16` / subnet `10.0.1.0/24`
-- NSG allowing SSH (22) and HTTP (80)
+Creates the migration source in us-east-2:
+- Ubuntu 24.04 LTS EC2 instance (`t3.micro`)
+- VPC `10.1.0.0/16` / subnet `10.1.1.0/24`
+- Security group allowing SSH (22) and HTTP (80)
 - RSA 4096 SSH key written to `../mgn-vm.pem` (gitignored)
-- Cloud-init script installs Apache2 and downloads the AWS MGN agent installer
+- User-data script installs Apache2
 
 ### Phase 2 — AWS MGN (`02-mgn/`)
 
-Creates the migration target:
+Creates the migration target in us-east-1:
 - VPC `10.50.0.0/16` with Internet Gateway
 - Public subnet `10.50.1.0/24` and staging subnet `10.50.2.0/24`
 - Security group (SSH + HTTP ingress)
@@ -91,7 +87,6 @@ Creates the migration target:
 
 | Provider | Version |
 |---|---|
-| `hashicorp/azurerm` | ~> 3.0 |
 | `hashicorp/aws` | ~> 6.0 |
 | `hashicorp/tls` | for SSH key generation |
 | `hashicorp/local` | for writing key files |
@@ -99,10 +94,10 @@ Creates the migration target:
 
 ## Notes
 
-- `mgn-vm.pem` is generated at the repo root and gitignored — required for SSH to the Azure VM.
+- `mgn-vm.pem` is generated at the repo root and gitignored — required for SSH to the source VM.
 - `init_mgn.sh` uses `aws mgn` CLI calls; it must run after IAM roles are created (enforced via Terraform `depends_on`).
 - No Terraform backend is configured — state is local. Do not commit `*.tfstate` files.
-- The `connect.sh` script is currently a stub.
+- Phase 3 (`install_agent.sh`) is commented out in `apply.sh` — uncomment to automate agent install.
 
 ## Code Commenting Standards
 

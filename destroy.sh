@@ -5,8 +5,8 @@ set -euo pipefail
 # destroy.sh
 #
 # Tears down both Terraform phases in reverse order:
-#   Phase 2 — 02-mgn    : AWS resources destroyed first (MGN, IAM, VPC)
-#   Phase 1 — 01-azure  : Azure source VM and networking destroyed second
+#   Phase 2 — 02-mgn  : AWS resources destroyed first (MGN, IAM, VPC)
+#   Phase 1 — 01-source  : EC2 source VM and networking destroyed second
 #
 # Reverse order is required because Phase 2 outputs may be referenced by
 # resources created after Phase 1 (e.g., agent credentials in Secrets Manager).
@@ -24,10 +24,10 @@ terraform -chdir="${SCRIPT_DIR}/02-mgn" init
 terraform -chdir="${SCRIPT_DIR}/02-mgn" destroy -auto-approve
 
 # --------------------------------------------------------------------------------
-# Phase 1 — Azure source environment
+# Phase 1 — AWS source environment (us-east-2)
 # --------------------------------------------------------------------------------
-echo "NOTE: Destroying 01-azure..."
-terraform -chdir="${SCRIPT_DIR}/01-azure" init
-terraform -chdir="${SCRIPT_DIR}/01-azure" destroy -auto-approve
+echo "NOTE: Destroying 01-source..."
+terraform -chdir="${SCRIPT_DIR}/01-source" init
+terraform -chdir="${SCRIPT_DIR}/01-source" destroy -auto-approve
 
 echo "NOTE: Teardown complete."

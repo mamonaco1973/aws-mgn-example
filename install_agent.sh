@@ -4,29 +4,29 @@ set -euo pipefail
 # ================================================================================
 # install_agent.sh
 #
-# Phase 3: Install the AWS MGN replication agent on the Azure source VM.
+# Phase 3: Install the AWS MGN replication agent on the source EC2 instance.
 # Runs after 02-mgn apply so the agent credentials exist in Secrets Manager.
 #
 # Steps:
-#   1. Resolve Azure VM FQDN from Terraform output (01-azure)
+#   1. Resolve source VM public DNS from Terraform output (01-source)
 #   2. Fetch agent credentials from AWS Secrets Manager (mgn-agent-credentials)
 #   3. SSH into the VM, download the MGN installer, and execute it as root
 # ================================================================================
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PEM_FILE="${SCRIPT_DIR}/mgn-vm.pem"
-AWS_REGION="us-east-1"
+MGN_REGION="us-east-1"      # Target region where MGN service is initialized
 SECRET_NAME="mgn-agent-credentials"
 SSH_USER="ubuntu"
 
 # --------------------------------------------------------------------------------
-# Resolve Azure VM FQDN from Terraform state
+# Resolve source VM public DNS from Terraform state
 # --------------------------------------------------------------------------------
-echo "NOTE: Reading VM FQDN from Terraform state..."
-FQDN=$(terraform -chdir="${SCRIPT_DIR}/01-azure" output -raw vm_public_fqdn)
+echo "NOTE: Reading VM public DNS from Terraform state..."
+HOST=$(terraform -chdir="${SCRIPT_DIR}/01-source" output -raw vm_public_dns)
 
-if [[ -z "${FQDN}" ]]; then
-  echo "ERROR: could not retrieve vm_public_fqdn from Terraform output." >&2
+if [[ -z "${HOST}" ]]; then
+  echo "ERROR: could not retrieve vm_public_dns from Terraform output." >&2
   exit 1
 fi
 
@@ -35,7 +35,7 @@ if [[ ! -f "${PEM_FILE}" ]]; then
   exit 1
 fi
 
-echo "NOTE: Target VM: ${FQDN}"
+echo "NOTE: Target VM: ${HOST}"
 
 # --------------------------------------------------------------------------------
 # Fetch agent credentials from Secrets Manager
@@ -45,7 +45,7 @@ echo "NOTE: Target VM: ${FQDN}"
 echo "NOTE: Fetching agent credentials from Secrets Manager..."
 SECRET_JSON=$(aws secretsmanager get-secret-value \
   --secret-id "${SECRET_NAME}" \
-  --region "${AWS_REGION}" \
+  --region "${MGN_REGION}" \
   --query SecretString \
   --output text)
 
@@ -61,16 +61,16 @@ echo "NOTE: Credentials retrieved for key ID: ${ACCESS_KEY_ID}"
 
 # --------------------------------------------------------------------------------
 # Wait for SSH availability
-# cloud-init may still be running if 02-mgn finished quickly after 01-azure.
+# user-data may still be running if 02-mgn finished quickly after 01-source.
 # --------------------------------------------------------------------------------
-echo "NOTE: Waiting for SSH to become available on ${FQDN}..."
+echo "NOTE: Waiting for SSH to become available on ${HOST}..."
 MAX_ATTEMPTS=20
 ATTEMPT=0
 until ssh -o StrictHostKeyChecking=accept-new \
           -o ConnectTimeout=10 \
           -o BatchMode=yes \
           -i "${PEM_FILE}" \
-          "${SSH_USER}@${FQDN}" "true" 2>/dev/null; do
+          "${SSH_USER}@${HOST}" "true" 2>/dev/null; do
   ATTEMPT=$(( ATTEMPT + 1 ))
   if [[ "${ATTEMPT}" -ge "${MAX_ATTEMPTS}" ]]; then
     echo "ERROR: SSH did not become available after ${MAX_ATTEMPTS} attempts." >&2
@@ -89,8 +89,8 @@ echo "NOTE: SSH is ready. Downloading MGN agent installer..."
 SSH_OPTS="-o StrictHostKeyChecking=accept-new -o ServerAliveInterval=30 -o ServerAliveCountMax=10"
 
 # shellcheck disable=SC2086
-ssh ${SSH_OPTS} -i "${PEM_FILE}" "${SSH_USER}@${FQDN}" \
-    "sudo wget -q -O /root/aws-replication-installer-init https://aws-application-migration-service-${AWS_REGION}.s3.${AWS_REGION}.amazonaws.com/latest/linux/aws-replication-installer-init"
+ssh ${SSH_OPTS} -i "${PEM_FILE}" "${SSH_USER}@${HOST}" \
+    "sudo wget -q -O /root/aws-replication-installer-init https://aws-application-migration-service-${MGN_REGION}.s3.${MGN_REGION}.amazonaws.com/latest/linux/aws-replication-installer-init"
 
 echo "NOTE: Running MGN agent installer..."
 
@@ -101,12 +101,15 @@ echo "NOTE: Running MGN agent installer..."
 ssh -o StrictHostKeyChecking=accept-new \
     -o ServerAliveInterval=30 \
     -o ServerAliveCountMax=10 \
-    -i "${PEM_FILE}" "${SSH_USER}@${FQDN}" \
+    -i "${PEM_FILE}" "${SSH_USER}@${HOST}" \
     "sudo chmod +x /root/aws-replication-installer-init && \
      sudo PYTHONUNBUFFERED=1 /root/aws-replication-installer-init \
-       --region ${AWS_REGION} \
+       --region ${MGN_REGION} \
        --aws-access-key-id ${ACCESS_KEY_ID} \
        --aws-secret-access-key ${SECRET_ACCESS_KEY} \
-       --no-prompt"
+       --no-prompt 2>/tmp/mgn-stderr.log; \
+     echo \"Exit: \$?\"; \
+     echo '--- stderr ---'; \
+     cat /tmp/mgn-stderr.log"
 
 echo "NOTE: MGN agent installation complete."
