@@ -1,25 +1,38 @@
 #!/bin/bash
+set -euo pipefail
 
-./check_env.sh
-if [ $? -ne 0 ]; then
-  echo "ERROR: Environment check failed. Exiting."
-  exit 1
-fi
+# ================================================================================
+# apply.sh
+#
+# Deploys both Terraform phases in order:
+#   Phase 1 — 01-azure  : Azure source VM and networking
+#   Phase 2 — 02-mgn    : AWS VPC, IAM roles, and MGN initialization
+#
+# Prerequisites: run check_env.sh (called automatically below) to confirm
+# all CLI tools and credentials are in place before provisioning begins.
+# ================================================================================
 
-cd 01-azure
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-terraform init
-terraform apply -auto-approve
+# --------------------------------------------------------------------------------
+# Environment validation
+# Abort early if tools or credentials are missing to avoid a partial deploy.
+# --------------------------------------------------------------------------------
+"${SCRIPT_DIR}/check_env.sh"
 
-cd ..
+# --------------------------------------------------------------------------------
+# Phase 1 — Azure source environment
+# --------------------------------------------------------------------------------
+echo "NOTE: Deploying 01-azure..."
+terraform -chdir="${SCRIPT_DIR}/01-azure" init
+terraform -chdir="${SCRIPT_DIR}/01-azure" apply -auto-approve
 
-# ssh -o StrictHostKeyChecking=accept-new -i mgn-vm.pem \
-# ubuntu@mgn-vm-e4dee2.centralus.cloudapp.azure.com
+# --------------------------------------------------------------------------------
+# Phase 2 — AWS MGN target environment
+# Must run after Phase 1 so the Azure VM exists before the agent is installed.
+# --------------------------------------------------------------------------------
+echo "NOTE: Deploying 02-mgn..."
+terraform -chdir="${SCRIPT_DIR}/02-mgn" init
+terraform -chdir="${SCRIPT_DIR}/02-mgn" apply -auto-approve
 
-
-cd 02-mgn
-
-terraform init
-terraform apply -auto-approve
-
-cd ..
+echo "NOTE: Deployment complete. Run ./connect.sh to SSH into the Azure VM."

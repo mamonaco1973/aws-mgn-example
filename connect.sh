@@ -9,27 +9,28 @@ set -euo pipefail
 # ================================================================================
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-AZURE_DIR="${SCRIPT_DIR}/01-azure"
 PEM_FILE="${SCRIPT_DIR}/mgn-vm.pem"
 
 # --------------------------------------------------------------------------------
 # Resolve FQDN from Terraform output
+# Reads directly from state so the hostname is always current.
 # --------------------------------------------------------------------------------
 echo "Reading VM FQDN from Terraform state..."
-FQDN=$(terraform -chdir="${AZURE_DIR}" output -raw vm_public_fqdn)
+FQDN=$(terraform -chdir="${SCRIPT_DIR}/01-azure" output -raw vm_public_fqdn)
 
 if [[ -z "${FQDN}" ]]; then
-  echo "Error: could not retrieve vm_public_fqdn from Terraform output." >&2
+  echo "ERROR: could not retrieve vm_public_fqdn from Terraform output." >&2
   exit 1
 fi
 
 if [[ ! -f "${PEM_FILE}" ]]; then
-  echo "Error: PEM key not found at ${PEM_FILE}" >&2
+  echo "ERROR: PEM key not found at ${PEM_FILE}" >&2
   exit 1
 fi
 
 # --------------------------------------------------------------------------------
 # Connect
+# accept-new accepts the host key on first connection without prompting.
 # --------------------------------------------------------------------------------
 echo "Connecting to ${FQDN}..."
 ssh -o StrictHostKeyChecking=accept-new -i "${PEM_FILE}" "ubuntu@${FQDN}"
