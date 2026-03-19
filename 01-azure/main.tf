@@ -48,7 +48,7 @@ resource "tls_private_key" "vm_key" {
 # Write private key to PEM file for later SSH usage
 resource "local_file" "vm_key_pem" {
 
-  filename        = "${var.prefix}-vm.pem"
+  filename        = "../${var.prefix}-vm.pem"
   content         = tls_private_key.vm_key.private_key_pem
   file_permission = "0600"
 
