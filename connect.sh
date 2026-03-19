@@ -34,4 +34,4 @@ fi
 # accept-new accepts the host key on first connection without prompting.
 # --------------------------------------------------------------------------------
 echo "Connecting to ${HOST}..."
-ssh -o StrictHostKeyChecking=accept-new -i "${PEM_FILE}" "ubuntu@${HOST}"
+ssh -o StrictHostKeyChecking=accept-new -i "${PEM_FILE}" "ec2-user@${HOST}"

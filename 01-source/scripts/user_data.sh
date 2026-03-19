@@ -2,19 +2,19 @@
 
 # ------------------------------------------------------------------------------
 # VM bootstrap script (EC2 user-data)
-# - Installs Apache web server
+# - Installs Apache (httpd) web server
 # - Enables and starts the service
 # - Sets a custom landing page to confirm workload identity post-migration
 #
-# No kernel swap needed — Canonical EC2 images ship linux-aws which is fully
-# supported by AWS MGN out of the box.
+# Amazon Linux 2 uses yum and httpd. Its kernel is maintained by AWS and
+# tested against the MGN agent — no kernel compatibility issues.
 # ------------------------------------------------------------------------------
 
-apt update -y
-apt install -y apache2
+yum update -y
+yum install -y httpd
 
-systemctl enable apache2
-systemctl start apache2
+systemctl enable httpd
+systemctl start httpd
 
 # Landing page text changes after cutover — makes migration success obvious.
 echo "Welcome to Apache - Source VM in us-east-2" > /var/www/html/index.html

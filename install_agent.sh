@@ -17,7 +17,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PEM_FILE="${SCRIPT_DIR}/mgn-vm.pem"
 MGN_REGION="us-east-1"      # Target region where MGN service is initialized
 SECRET_NAME="mgn-agent-credentials"
-SSH_USER="ubuntu"
+SSH_USER="ec2-user"
 
 # --------------------------------------------------------------------------------
 # Resolve source VM public DNS from Terraform state

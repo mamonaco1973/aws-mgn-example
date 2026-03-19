@@ -29,7 +29,7 @@ variable "instance_type" {
 }
 
 variable "admin_username" {
-  description = "SSH username (Ubuntu EC2 default)"
+  description = "SSH username (Amazon Linux 2 default)"
   type        = string
-  default     = "ubuntu"
+  default     = "ec2-user"
 }
