@@ -202,7 +202,7 @@ resource "aws_iam_user" "mgn_agent" {
 
 resource "aws_iam_user_policy_attachment" "mgn_agent" {
   user       = aws_iam_user.mgn_agent.name
-  policy_arn = "arn:aws:iam::aws:policy/AWSApplicationMigrationAgentPolicy_v2"
+  policy_arn = "arn:aws:iam::aws:policy/AWSApplicationMigrationAgentPolicy"
 }
 
 # ==============================================================================
