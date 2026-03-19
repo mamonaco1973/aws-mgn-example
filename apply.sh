@@ -15,3 +15,11 @@ cd ..
 
 # ssh -o StrictHostKeyChecking=accept-new -i mgn-vm.pem \
 # ubuntu@mgn-vm-e4dee2.centralus.cloudapp.azure.com
+
+
+cd 02-mgn
+
+terraform init
+terraform apply -auto-approve
+
+cd ..
