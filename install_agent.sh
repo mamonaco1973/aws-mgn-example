@@ -10,7 +10,7 @@ set -euo pipefail
 # Steps:
 #   1. Resolve Azure VM FQDN from Terraform output (01-azure)
 #   2. Fetch agent credentials from AWS Secrets Manager (mgn-agent-credentials)
-#   3. SSH into the VM and execute the MGN installer as root
+#   3. SSH into the VM, download the MGN installer, and execute it as root
 # ================================================================================
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -80,16 +80,26 @@ until ssh -o StrictHostKeyChecking=accept-new \
   sleep 15
 done
 
-echo "NOTE: SSH is ready. Installing MGN agent..."
+echo "NOTE: SSH is ready. Downloading MGN agent installer..."
 
 # --------------------------------------------------------------------------------
-# Install the MGN agent on the source VM
-# The installer was downloaded to /root by cloud-init (custom_data.sh).
-# The command is run as root via sudo so the installer can access /root.
+# Download the MGN agent installer onto the source VM
+# Fetched directly from the AWS S3 endpoint into /root on the remote machine.
 # --------------------------------------------------------------------------------
 ssh -o StrictHostKeyChecking=accept-new \
     -i "${PEM_FILE}" \
     "${SSH_USER}@${FQDN}" \
-    "cd /root && sudo chmod +x aws-replication-installer-init && sudo ./aws-replication-installer-init --region ${AWS_REGION} --aws-access-key-id ${ACCESS_KEY_ID} --aws-secret-access-key ${SECRET_ACCESS_KEY} --no-prompt"
+    "sudo wget -q -O /root/aws-replication-installer-init https://aws-application-migration-service-${AWS_REGION}.s3.${AWS_REGION}.amazonaws.com/latest/linux/aws-replication-installer-init"
+
+echo "NOTE: Running MGN agent installer..."
+
+# --------------------------------------------------------------------------------
+# Install the MGN agent on the source VM
+# The command is run as root via sudo so the installer can write to /root.
+# --------------------------------------------------------------------------------
+ssh -o StrictHostKeyChecking=accept-new \
+    -i "${PEM_FILE}" \
+    "${SSH_USER}@${FQDN}" \
+    "sudo chmod +x /root/aws-replication-installer-init && sudo /root/aws-replication-installer-init --region ${AWS_REGION} --aws-access-key-id ${ACCESS_KEY_ID} --aws-secret-access-key ${SECRET_ACCESS_KEY} --no-prompt"
 
 echo "NOTE: MGN agent installation complete."
