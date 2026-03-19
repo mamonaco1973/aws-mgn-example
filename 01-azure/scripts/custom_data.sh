@@ -8,7 +8,7 @@
 # ------------------------------------------------------------------------------
 
 sudo apt update -y
-sudo apt install apache2 -y
+sudo apt install apache2 isc-dhcp-client -y
 
 sudo systemctl enable apache2
 sudo systemctl start apache2
