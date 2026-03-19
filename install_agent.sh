@@ -86,20 +86,31 @@ echo "NOTE: SSH is ready. Downloading MGN agent installer..."
 # Download the MGN agent installer onto the source VM
 # Fetched directly from the AWS S3 endpoint into /root on the remote machine.
 # --------------------------------------------------------------------------------
-ssh -o StrictHostKeyChecking=accept-new \
-    -i "${PEM_FILE}" \
-    "${SSH_USER}@${FQDN}" \
+SSH_OPTS="-o StrictHostKeyChecking=accept-new -o ServerAliveInterval=30 -o ServerAliveCountMax=10"
+
+# shellcheck disable=SC2086
+ssh ${SSH_OPTS} -i "${PEM_FILE}" "${SSH_USER}@${FQDN}" \
     "sudo wget -q -O /root/aws-replication-installer-init https://aws-application-migration-service-${AWS_REGION}.s3.${AWS_REGION}.amazonaws.com/latest/linux/aws-replication-installer-init"
 
 echo "NOTE: Running MGN agent installer..."
 
 # --------------------------------------------------------------------------------
 # Install the MGN agent on the source VM
-# The command is run as root via sudo so the installer can write to /root.
+# nohup prevents the installer from dying if the SSH session drops mid-download.
+# ServerAliveInterval keeps the connection alive during the long agent download.
+# Output is tee'd to a log file so we can review it after the session ends.
 # --------------------------------------------------------------------------------
-ssh -o StrictHostKeyChecking=accept-new \
-    -i "${PEM_FILE}" \
-    "${SSH_USER}@${FQDN}" \
-    "sudo chmod +x /root/aws-replication-installer-init && sudo /root/aws-replication-installer-init --region ${AWS_REGION} --aws-access-key-id ${ACCESS_KEY_ID} --aws-secret-access-key ${SECRET_ACCESS_KEY} --no-prompt"
+SSH_OPTS="-o StrictHostKeyChecking=accept-new -o ServerAliveInterval=30 -o ServerAliveCountMax=10"
+MGN_LOG="/tmp/mgn-install.log"
 
-echo "NOTE: MGN agent installation complete."
+# shellcheck disable=SC2086
+ssh ${SSH_OPTS} -i "${PEM_FILE}" "${SSH_USER}@${FQDN}" \
+    "sudo chmod +x /root/aws-replication-installer-init && \
+     sudo nohup /root/aws-replication-installer-init \
+       --region ${AWS_REGION} \
+       --aws-access-key-id ${ACCESS_KEY_ID} \
+       --aws-secret-access-key ${SECRET_ACCESS_KEY} \
+       --no-prompt 2>&1 | sudo tee ${MGN_LOG}; \
+     echo \"Exit code: \$?\""
+
+echo "NOTE: MGN agent installation complete. Full log at ${MGN_LOG} on the source VM."
