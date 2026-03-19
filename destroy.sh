@@ -5,14 +5,58 @@ set -euo pipefail
 # destroy.sh
 #
 # Tears down both Terraform phases in reverse order:
-#   Phase 2 — 02-mgn  : AWS resources destroyed first (MGN, IAM, VPC)
-#   Phase 1 — 01-source  : EC2 source VM and networking destroyed second
+#   Phase 2 — 02-mgn    : AWS resources destroyed first (MGN, IAM, VPC)
+#   Phase 1 — 01-source : EC2 source VM and networking destroyed second
 #
-# Reverse order is required because Phase 2 outputs may be referenced by
-# resources created after Phase 1 (e.g., agent credentials in Secrets Manager).
+# MGN source servers must be deleted before Terraform runs — they are not
+# managed by Terraform and will block IAM role deletion if left behind.
 # ================================================================================
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+MGN_REGION="us-east-1"
+
+# --------------------------------------------------------------------------------
+# MGN Source Server Cleanup
+# Disconnect, archive, then delete all source servers in the account.
+# Must run before Terraform so IAM roles are still in place for the API calls.
+# --------------------------------------------------------------------------------
+echo "NOTE: Cleaning up MGN source servers in ${MGN_REGION}..."
+
+SOURCE_SERVER_IDS=$(aws mgn describe-source-servers \
+  --region "${MGN_REGION}" \
+  --filters '{}' \
+  --query 'items[*].sourceServerID' \
+  --output text 2>/dev/null || true)
+
+if [[ -n "${SOURCE_SERVER_IDS}" ]]; then
+
+  # Disconnect any servers still reporting to MGN before archiving.
+  for ID in ${SOURCE_SERVER_IDS}; do
+    echo "NOTE: Disconnecting source server ${ID}..."
+    aws mgn disconnect-from-service \
+      --region "${MGN_REGION}" \
+      --source-server-id "${ID}" 2>/dev/null || true
+  done
+
+  # Archive all servers — delete-source-server requires archived state.
+  for ID in ${SOURCE_SERVER_IDS}; do
+    echo "NOTE: Archiving source server ${ID}..."
+    aws mgn archive-source-server \
+      --region "${MGN_REGION}" \
+      --source-server-id "${ID}" 2>/dev/null || true
+  done
+
+  # Delete all archived servers.
+  for ID in ${SOURCE_SERVER_IDS}; do
+    echo "NOTE: Deleting source server ${ID}..."
+    aws mgn delete-source-server \
+      --region "${MGN_REGION}" \
+      --source-server-id "${ID}"
+  done
+
+else
+  echo "NOTE: No MGN source servers found."
+fi
 
 # --------------------------------------------------------------------------------
 # Phase 2 — AWS MGN target environment

@@ -74,13 +74,14 @@ echo "Creating replication configuration template..."
 
 aws mgn create-replication-configuration-template \
   --region "${AWS_REGION}" \
+  --no-associate-default-security-group \
   --staging-area-subnet-id "${STAGING_SUBNET_ID}" \
   --replication-servers-security-groups-ids "${TARGET_SECURITY_GROUP_ID}" \
   --replication-server-instance-type "${REPLICATION_INSTANCE_TYPE}" \
   --use-dedicated-replication-server \
   --data-plane-routing PUBLIC_IP \
   --create-public-ip \
-  --default-large-staging-disk-type GP2 \
+  --default-large-staging-disk-type GP3 \
   --ebs-encryption DEFAULT \
   --bandwidth-throttling 0 \
   --staging-area-tags Name=mgn-staging,Project=mgn-lab
