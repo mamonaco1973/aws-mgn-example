@@ -98,7 +98,6 @@ aws mgn create-launch-configuration-template \
   --copy-private-ip \
   --copy-tags \
   --launch-disposition STOPPED \
-  --licensing-os-byol false \
   --target-instance-type-right-sizing-method NONE
 
 # --------------------------------------------------------------
