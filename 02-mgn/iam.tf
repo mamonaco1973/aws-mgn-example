@@ -192,7 +192,7 @@ resource "aws_iam_role_policy_attachment" "mgn_agent" {
 #
 # Dedicated IAM user whose access key is supplied to the source-side agent
 # installer. Using a purpose-built user (rather than a role) is required
-# because the Azure VM cannot assume an IAM role directly.
+# because the source VM has no instance profile in the target account.
 # ==============================================================================
 
 resource "aws_iam_user" "mgn_agent" {
@@ -202,7 +202,7 @@ resource "aws_iam_user" "mgn_agent" {
 
 resource "aws_iam_user_policy_attachment" "mgn_agent" {
   user       = aws_iam_user.mgn_agent.name
-  policy_arn = "arn:aws:iam::aws:policy/AWSApplicationMigrationAgentPolicy"
+  policy_arn = "arn:aws:iam::aws:policy/AWSApplicationMigrationAgentInstallationPolicy"
 }
 
 # ==============================================================================
