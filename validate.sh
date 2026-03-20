@@ -23,15 +23,14 @@ TARGET_REGION="us-east-1"
 check_http() {
   local LABEL="$1"
   local IP="$2"
-  printf "  %-45s : " "${LABEL} (${IP})"
-  RESPONSE=$(curl -s --max-time 10 "http://${IP}" 2>/dev/null \
-    | tr -d '\r' | tr '\n' ' ' | sed 's/  */ /g; s/^ //; s/ $//' \
-    | cut -c1-80 || true)
+  echo "  ${LABEL} (${IP}):"
+  RESPONSE=$(curl -s --max-time 10 "http://${IP}" 2>/dev/null | tr -d '\r' || true)
   if [[ -n "${RESPONSE}" ]]; then
-    echo "${RESPONSE}"
+    echo "${RESPONSE}" | sed 's/^/    /'
   else
-    echo "FAILED — no response"
+    echo "    FAILED — no response"
   fi
+  echo ""
 }
 
 # --------------------------------------------------------------------------------
