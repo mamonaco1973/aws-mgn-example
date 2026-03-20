@@ -35,33 +35,7 @@ registration through test launch and cutover validation.
 
 ## Architecture
 
-```mermaid
-flowchart TD
-    subgraph source["Source Environment — us-east-2"]
-        AL2["Amazon Linux 2\nApache HTTP Server"]
-        WIN["Windows Server 2019\nIIS Web Server"]
-    end
 
-    subgraph mgn["AWS MGN — us-east-1"]
-        AGENT["MGN Agent\n(installed via user-data)"]
-        REP["MGN Replication Server\n(auto-provisioned)"]
-        TMPL["Replication + Launch Templates"]
-    end
-
-    subgraph target["Target Environment — us-east-1"]
-        T_AL2["Migrated Linux Instance"]
-        T_WIN["Migrated Windows Instance"]
-    end
-
-    AL2 -->|"block-level replication\nTCP 1500"| REP
-    WIN -->|"block-level replication\nTCP 1500"| REP
-    REP --> TMPL
-    TMPL -->|"test launch / cutover"| T_AL2
-    TMPL -->|"test launch / cutover"| T_WIN
-
-    SM["Secrets Manager\nmgn-agent-credentials"] -->|"IAM instance profile"| AL2
-    SM -->|"IAM instance profile"| WIN
-```
 
 ## MGN Migration Lifecycle
 
