@@ -14,7 +14,7 @@ set -euo pipefail
 
 MGN_REGION="us-east-1"
 EXPECTED_SERVERS=2        # Update when adding more source servers
-POLL_INTERVAL=30          # Seconds between MGN status checks
+POLL_INTERVAL=60          # Seconds between MGN status checks
 MAX_WAIT=7200             # Timeout in seconds (2 hours — initial sync can be slow)
 
 # --------------------------------------------------------------------------------
