@@ -63,7 +63,7 @@ fi
 # Instance IDs resolved from MGN lifecycle — checks both test launch and
 # cutover launch so it works regardless of which stage has been completed.
 # --------------------------------------------------------------------------------
-echo ""
+
 echo "======================================================================"
 echo "Target Servers (${TARGET_REGION})"
 echo "======================================================================"
