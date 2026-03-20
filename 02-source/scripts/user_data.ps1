@@ -87,6 +87,23 @@ if (-not $AccessKeyId -or -not $SecretAccessKey) {
 
 Write-Host "MGN: Credentials retrieved for key ID: $AccessKeyId"
 
+# ================================================================================
+# Local Admin Account
+# Creates a local administrator using the MGN agent username and secret access
+# key as the password — allows RDP access for debugging without storing a
+# separate credential.
+# ================================================================================
+
+Write-Host "Creating local admin account: $($SecretJson.username)..."
+$AdminPassword = ConvertTo-SecureString $SecretAccessKey -AsPlainText -Force
+New-LocalUser -Name $SecretJson.username `
+  -Password $AdminPassword `
+  -FullName $SecretJson.username `
+  -Description "MGN debug admin" `
+  -PasswordNeverExpires
+Add-LocalGroupMember -Group "Administrators" -Member $SecretJson.username
+Write-Host "Local admin account created."
+
 # --------------------------------------------------------------------------------
 # Download MGN Windows installer
 # --------------------------------------------------------------------------------
