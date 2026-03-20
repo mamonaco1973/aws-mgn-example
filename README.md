@@ -35,6 +35,7 @@ registration through test launch and cutover validation.
 
 ## Architecture
 
+![diagram](aws-mgn-example.png)
 
 
 ## MGN Migration Lifecycle

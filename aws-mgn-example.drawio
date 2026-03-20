@@ -1,0 +1,119 @@
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36" version="29.6.4">
+  <diagram id="aws-mgn-demo" name="AWS MGN Demo">
+    <mxGraphModel grid="0" page="1" gridSize="10" guides="0" tooltips="1" connect="1" arrows="1" fold="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="100" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=15;fontStyle=1;fontColor=#232F3E;" value="AWS Application Migration Service (MGN) — Cross-Region Migration Demo" vertex="1">
+          <mxGeometry height="28" width="1130" x="20" y="15" as="geometry" />
+        </mxCell>
+        <mxCell id="2" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#EBF5FB;strokeColor=#232F3E;strokeWidth=2;dashed=1;dashPattern=8 4;" value="" vertex="1">
+          <mxGeometry height="600" width="330" x="20" y="55" as="geometry" />
+        </mxCell>
+        <mxCell id="101" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=11;fontStyle=1;fontColor=#232F3E;" value="AWS Region: us-east-2 — Source" vertex="1">
+          <mxGeometry height="20" width="330" x="20" y="62" as="geometry" />
+        </mxCell>
+        <mxCell id="3" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F4EBFF;strokeColor=#8C4FFF;strokeWidth=2;verticalAlign=top;fontSize=12;fontColor=#6B2D9E;fontStyle=1;" value="VPC   10.1.0.0/16" vertex="1">
+          <mxGeometry height="500" width="290" x="40" y="110" as="geometry" />
+        </mxCell>
+        <mxCell id="4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E65100;strokeColor=#BF360C;fontColor=#ffffff;fontSize=12;arcSize=6;" value="&lt;b&gt;Amazon Linux 2&lt;/b&gt;&lt;br&gt;Apache HTTP Server&lt;br&gt;&lt;font style=&#39;font-size:9px;&#39; color=&#39;#FFE0B2&#39;&gt;MGN replication agent installed via user-data&lt;/font&gt;" vertex="1">
+          <mxGeometry height="90" width="250" x="60" y="155" as="geometry" />
+        </mxCell>
+        <mxCell id="5" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E65100;strokeColor=#BF360C;fontColor=#ffffff;fontSize=12;arcSize=6;" value="&lt;b&gt;Windows Server 2019&lt;/b&gt;&lt;br&gt;IIS Web Server&lt;br&gt;&lt;font style=&#39;font-size:9px;&#39; color=&#39;#FFE0B2&#39;&gt;MGN replication agent installed via user-data&lt;/font&gt;" vertex="1">
+          <mxGeometry height="90" width="250" x="60" y="330" as="geometry" />
+        </mxCell>
+        <mxCell id="6" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EDE7F6;strokeColor=#7B1FA2;fontColor=#232F3E;fontSize=12;arcSize=6;" value="&lt;b&gt;EC2 Instance Profile&lt;/b&gt;&lt;br&gt;&lt;font style=&#39;font-size:9px&#39;&gt;AmazonSSMManagedInstanceCore&lt;br&gt;secretsmanager:GetSecretValue&lt;/font&gt;" vertex="1">
+          <mxGeometry height="75" width="250" x="60" y="490" as="geometry" />
+        </mxCell>
+        <mxCell id="7" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#6A1B9A;strokeColor=#4A148C;fontColor=#ffffff;fontSize=12;arcSize=6;" value="&lt;b&gt;AWS Application&lt;br&gt;Migration Service (MGN)&lt;/b&gt;&lt;br&gt;&lt;font style=&#39;font-size:9px&#39;&gt;us-east-1&lt;/font&gt;" vertex="1">
+          <mxGeometry height="80" width="200" x="400" y="115" as="geometry" />
+        </mxCell>
+        <mxCell id="8" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EDE7F6;strokeColor=#7B1FA2;fontColor=#232F3E;fontSize=12;arcSize=6;" value="&lt;b&gt;Replication Server&lt;/b&gt;&lt;br&gt;&lt;font style=&#39;font-size:9px&#39;&gt;Auto-provisioned by MGN&lt;br&gt;Staging subnet · us-east-1&lt;br&gt;Inbound TCP 1500 required&lt;/font&gt;" vertex="1">
+          <mxGeometry height="90" width="200" x="400" y="265" as="geometry" />
+        </mxCell>
+        <mxCell id="9" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C62828;strokeColor=#B71C1C;fontColor=#ffffff;fontSize=12;arcSize=6;" value="&lt;b&gt;Secrets Manager&lt;/b&gt;&lt;br&gt;mgn-agent-credentials&lt;br&gt;&lt;font style=&#39;font-size:9px&#39;&gt;us-east-1 · read via instance profile&lt;/font&gt;" vertex="1">
+          <mxGeometry height="80" width="200" x="400" y="435" as="geometry" />
+        </mxCell>
+        <mxCell id="10" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1565C0;strokeColor=#0D47A1;fontColor=#ffffff;fontSize=12;arcSize=6;" value="&lt;b&gt;SSM Run Command&lt;/b&gt;&lt;br&gt;&lt;font style=&#39;font-size:9px&#39;&gt;modify.sh — updates landing&lt;br&gt;page on source servers&lt;/font&gt;" vertex="1">
+          <mxGeometry height="75" width="200" x="400" y="570" as="geometry" />
+        </mxCell>
+        <mxCell id="11" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#232F3E;strokeWidth=2;dashed=1;dashPattern=8 4;" value="" vertex="1">
+          <mxGeometry height="600" width="500" x="650" y="55" as="geometry" />
+        </mxCell>
+        <mxCell id="102" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=11;fontStyle=1;fontColor=#232F3E;" value="AWS Region: us-east-1 — Target" vertex="1">
+          <mxGeometry height="20" width="500" x="650" y="62" as="geometry" />
+        </mxCell>
+        <mxCell id="12" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#2E7D32;fontColor=#232F3E;fontSize=12;arcSize=6;" value="&lt;b&gt;IAM Service Roles&lt;/b&gt;&lt;br&gt;&lt;font style=&#39;font-size:9px&#39;&gt;ReplicationServerRole&lt;br&gt;ConversionServerRole&lt;br&gt;LaunchInstanceWithSsmRole&lt;br&gt;path: /service-role/&lt;/font&gt;" vertex="1">
+          <mxGeometry height="110" width="210" x="670" y="110" as="geometry" />
+        </mxCell>
+        <mxCell id="13" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#2E7D32;fontColor=#232F3E;fontSize=12;arcSize=6;" value="&lt;b&gt;MGN Templates&lt;/b&gt;&lt;br&gt;&lt;font style=&#39;font-size:9px&#39;&gt;Replication template&lt;br&gt;dataPlaneRouting: PUBLIC_IP&lt;br&gt;Launch template · target VPC&lt;/font&gt;" vertex="1">
+          <mxGeometry height="110" width="210" x="910" y="110" as="geometry" />
+        </mxCell>
+        <mxCell id="14" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#2E7D32;strokeWidth=2;verticalAlign=top;fontSize=12;fontColor=#1B5E20;fontStyle=1;" value="VPC   10.50.0.0/16" vertex="1">
+          <mxGeometry height="325" width="462" x="668" y="290" as="geometry" />
+        </mxCell>
+        <mxCell id="15" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2E7D32;strokeColor=#1B5E20;fontColor=#ffffff;fontSize=12;arcSize=6;" value="&lt;b&gt;Migrated Linux Instance&lt;/b&gt;&lt;br&gt;Amazon Linux 2&lt;br&gt;Apache HTTP Server" vertex="1">
+          <mxGeometry height="90" width="205" x="685" y="370" as="geometry" />
+        </mxCell>
+        <mxCell id="16" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2E7D32;strokeColor=#1B5E20;fontColor=#ffffff;fontSize=12;arcSize=6;" value="&lt;b&gt;Migrated Windows Instance&lt;/b&gt;&lt;br&gt;Windows Server 2019&lt;br&gt;IIS Web Server" vertex="1">
+          <mxGeometry height="90" width="200" x="910" y="370" as="geometry" />
+        </mxCell>
+        <mxCell id="17" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F9A825;strokeColor=#F57F17;fontColor=#232F3E;fontSize=12;arcSize=6;" value="&lt;b&gt;validate.sh&lt;/b&gt;&lt;br&gt;&lt;font style=&#39;font-size:9px&#39;&gt;curl HTTP — checks source&lt;br&gt;and target workloads&lt;/font&gt;" vertex="1">
+          <mxGeometry height="70" width="200" x="775" y="530" as="geometry" />
+        </mxCell>
+        <mxCell id="30" edge="1" parent="1" source="4" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.3;entryDx=0;entryDy=0;strokeColor=#7B1FA2;fontColor=#6A1B9A;fontSize=11;fontStyle=1;endArrow=block;endFill=1;strokeWidth=2;" target="8" value="Block replication">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="31" edge="1" parent="1" source="5" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.7;entryDx=0;entryDy=0;strokeColor=#7B1FA2;fontColor=#6A1B9A;fontSize=11;fontStyle=1;endArrow=block;endFill=1;strokeWidth=2;" target="8" value="Block replication">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="38" edge="1" parent="1" source="7" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#7B1FA2;endArrow=block;endFill=1;strokeWidth=1;" target="8" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="32" edge="1" parent="1" source="8" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=1;exitY=0.3;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#2E7D32;fontColor=#1B5E20;fontSize=11;fontStyle=1;endArrow=block;endFill=1;strokeWidth=2;" target="15" value="Test launch / Cutover">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="33" edge="1" parent="1" source="8" style="html=1;exitX=1;exitY=0.7;exitDx=0;exitDy=0;strokeColor=#2E7D32;fontColor=#1B5E20;fontSize=11;fontStyle=1;endArrow=block;endFill=1;strokeWidth=2;entryX=0.56;entryY=-0.016;entryDx=0;entryDy=0;entryPerimeter=0;" target="16" value="Test launch / Cutover">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1022" y="328" />
+            </Array>
+            <mxPoint x="1020" y="346" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="34" edge="1" parent="1" source="9" style="edgeStyle=orthogonalEdgeStyle;html=1;dashed=1;dashPattern=6 3;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;strokeColor=#C62828;fontColor=#C62828;fontSize=11;endArrow=open;endFill=0;strokeWidth=1;" target="4" value="credentials">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="35" edge="1" parent="1" source="9" style="edgeStyle=orthogonalEdgeStyle;html=1;dashed=1;dashPattern=6 3;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;strokeColor=#C62828;fontColor=#C62828;fontSize=11;endArrow=open;endFill=0;strokeWidth=1;" target="5" value="credentials">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="39" edge="1" parent="1" source="6" style="edgeStyle=orthogonalEdgeStyle;html=1;dashed=1;dashPattern=4 4;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#7B1FA2;endArrow=open;endFill=0;strokeWidth=1;" target="9" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="36" edge="1" parent="1" source="10" style="edgeStyle=orthogonalEdgeStyle;html=1;dashed=1;dashPattern=6 3;exitX=0;exitY=0.4;exitDx=0;exitDy=0;entryX=1;entryY=0.8;entryDx=0;entryDy=0;strokeColor=#1565C0;fontColor=#1565C0;fontSize=11;endArrow=open;endFill=0;strokeWidth=1;" target="4" value="update page">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="37" edge="1" parent="1" source="10" style="edgeStyle=orthogonalEdgeStyle;html=1;dashed=1;dashPattern=6 3;exitX=0;exitY=0.7;exitDx=0;exitDy=0;entryX=1;entryY=0.8;entryDx=0;entryDy=0;strokeColor=#1565C0;fontColor=#1565C0;fontSize=11;endArrow=open;endFill=0;strokeWidth=1;" target="5" value="update page">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="40" edge="1" parent="1" source="12" style="edgeStyle=orthogonalEdgeStyle;html=1;dashed=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#2E7D32;fontColor=#2E7D32;fontSize=11;endArrow=open;endFill=0;" target="7" value="provides roles">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="41" edge="1" parent="1" source="13" style="edgeStyle=orthogonalEdgeStyle;html=1;dashed=1;exitX=0.46;exitY=-0.009;exitDx=0;exitDy=0;entryX=1;entryY=0.3;entryDx=0;entryDy=0;strokeColor=#2E7D32;fontColor=#2E7D32;fontSize=11;endArrow=open;endFill=0;exitPerimeter=0;" target="7" value="configures">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1007" y="104" />
+              <mxPoint x="600" y="104" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="42" edge="1" parent="1" source="17" style="edgeStyle=orthogonalEdgeStyle;html=1;dashed=1;dashPattern=6 3;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;strokeColor=#F57F17;fontColor=#E65100;fontSize=11;endArrow=open;endFill=0;" target="15" value="curl HTTP">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="43" edge="1" parent="1" source="17" style="edgeStyle=orthogonalEdgeStyle;html=1;dashed=1;dashPattern=6 3;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;strokeColor=#F57F17;fontColor=#E65100;fontSize=11;endArrow=open;endFill=0;" target="16" value="curl HTTP">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
