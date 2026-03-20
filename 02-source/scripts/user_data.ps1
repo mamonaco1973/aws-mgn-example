@@ -56,7 +56,7 @@ Install-WindowsFeature -Name Web-Server -IncludeManagementTools
 # Landing page text changes after cutover — makes migration success obvious.
 # ================================================================================
 
-$Page = "Welcome to IIS - Windows Server 2019 Source VM in us-east-2"
+$Page = "Welcome to IIS :: Windows Server 2019 Source VM in us-east-2"
 Set-Content -Path "C:\inetpub\wwwroot\iisstart.htm" -Value $Page
 Set-Content -Path "C:\inetpub\wwwroot\index.html"   -Value $Page
 

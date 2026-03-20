@@ -40,7 +40,7 @@ systemctl enable httpd
 systemctl start httpd
 
 # Landing page text changes after cutover — makes migration success obvious.
-echo "Welcome to Apache - Source VM in us-east-2" > /var/www/html/index.html
+echo "Welcome to Apache :: Source VM in us-east-2" > /var/www/html/index.html
 
 # ================================================================================
 # MGN Agent Installation

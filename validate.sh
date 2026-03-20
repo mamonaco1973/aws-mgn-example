@@ -27,7 +27,7 @@ check_http() {
   echo ""
   RESPONSE=$(curl -s --max-time 10 "http://${IP}" 2>/dev/null | tr -d '\r' || true)
   if [[ -n "${RESPONSE}" ]]; then
-    echo "${RESPONSE}" | sed 's/^/    /'
+    echo "${RESPONSE}" | awk '{gsub(/ :: /, "\n"); print}' | sed 's/^/    /'
   else
     echo "    FAILED — no response"
   fi
