@@ -23,7 +23,8 @@ TARGET_REGION="us-east-1"
 check_http() {
   local LABEL="$1"
   local IP="$2"
-  echo "  ${LABEL} (${IP}):"
+  echo "  ${LABEL} (${IP}): "
+  echo ""
   RESPONSE=$(curl -s --max-time 10 "http://${IP}" 2>/dev/null | tr -d '\r' || true)
   if [[ -n "${RESPONSE}" ]]; then
     echo "${RESPONSE}" | sed 's/^/    /'
