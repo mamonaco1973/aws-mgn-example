@@ -49,7 +49,7 @@ variable "staging_subnet_cidr" {
 variable "replication_server_instance_type" {
   description = "Instance type for MGN replication servers"
   type        = string
-  default     = "t3.small"
+  default     = "t3.medium"
 }
 
 # When false, replication traffic flows over the public IP — suitable for

@@ -5,10 +5,10 @@ set -euo pipefail
 # install_agent.sh
 #
 # Phase 3: Install the AWS MGN replication agent on the source EC2 instance.
-# Runs after 02-mgn apply so the agent credentials exist in Secrets Manager.
+# Runs after 01-mgn apply so the agent credentials exist in Secrets Manager.
 #
 # Steps:
-#   1. Resolve source VM public DNS from Terraform output (01-source)
+#   1. Resolve source VM public DNS from Terraform output (02-source)
 #   2. Fetch agent credentials from AWS Secrets Manager (mgn-agent-credentials)
 #   3. SSH into the VM, download the MGN installer, and execute it as root
 # ================================================================================
@@ -23,7 +23,7 @@ SSH_USER="ec2-user"
 # Resolve source VM public DNS from Terraform state
 # --------------------------------------------------------------------------------
 echo "NOTE: Reading VM public DNS from Terraform state..."
-HOST=$(terraform -chdir="${SCRIPT_DIR}/01-source" output -raw vm_public_dns)
+HOST=$(terraform -chdir="${SCRIPT_DIR}/02-source" output -raw vm_public_dns)
 
 if [[ -z "${HOST}" ]]; then
   echo "ERROR: could not retrieve vm_public_dns from Terraform output." >&2
@@ -40,7 +40,7 @@ echo "NOTE: Target VM: ${HOST}"
 # --------------------------------------------------------------------------------
 # Fetch agent credentials from Secrets Manager
 # The mgn-agent-credentials secret stores access_key_id and secret_access_key
-# as a JSON object, created in 02-mgn/iam.tf.
+# as a JSON object, created in 01-mgn/iam.tf.
 # --------------------------------------------------------------------------------
 echo "NOTE: Fetching agent credentials from Secrets Manager..."
 SECRET_JSON=$(aws secretsmanager get-secret-value \
@@ -61,7 +61,7 @@ echo "NOTE: Credentials retrieved for key ID: ${ACCESS_KEY_ID}"
 
 # --------------------------------------------------------------------------------
 # Wait for SSH availability
-# user-data may still be running if 02-mgn finished quickly after 01-source.
+# user-data may still be running if 01-mgn finished quickly after 02-source.
 # --------------------------------------------------------------------------------
 echo "NOTE: Waiting for SSH to become available on ${HOST}..."
 MAX_ATTEMPTS=20

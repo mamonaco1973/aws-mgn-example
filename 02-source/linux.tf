@@ -35,6 +35,8 @@ resource "aws_instance" "main" {
   subnet_id              = aws_subnet.main.id
   vpc_security_group_ids = [aws_security_group.main.id]
 
+  iam_instance_profile = aws_iam_instance_profile.source_instance.name
+
   user_data = file("scripts/user_data.sh")
 
   tags = {

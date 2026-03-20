@@ -5,7 +5,7 @@ set -euo pipefail
 # connect.sh
 #
 # SSH into the source EC2 instance using the public DNS from Terraform state
-# and the generated PEM key. Run from the repo root after 01-source has been
+# and the generated PEM key. Run from the repo root after 02-source has been
 # applied.
 # ================================================================================
 
@@ -17,7 +17,7 @@ PEM_FILE="${SCRIPT_DIR}/mgn-vm.pem"
 # Reads directly from state so the hostname is always current.
 # --------------------------------------------------------------------------------
 echo "Reading VM public DNS from Terraform state..."
-HOST=$(terraform -chdir="${SCRIPT_DIR}/01-source" output -raw vm_public_dns)
+HOST=$(terraform -chdir="${SCRIPT_DIR}/02-source" output -raw vm_public_dns)
 
 if [[ -z "${HOST}" ]]; then
   echo "ERROR: could not retrieve vm_public_dns from Terraform output." >&2

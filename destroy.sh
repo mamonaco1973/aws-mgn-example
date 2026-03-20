@@ -5,8 +5,8 @@ set -euo pipefail
 # destroy.sh
 #
 # Tears down both Terraform phases in reverse order:
-#   Phase 2 — 02-mgn    : AWS resources destroyed first (MGN, IAM, VPC)
-#   Phase 1 — 01-source : EC2 source VM and networking destroyed second
+#   Phase 2 — 02-source : EC2 source VM and networking destroyed first
+#   Phase 1 — 01-mgn    : MGN, IAM, and VPC destroyed second
 #
 # MGN source servers must be deleted before Terraform runs — they are not
 # managed by Terraform and will block IAM role deletion if left behind.
@@ -59,19 +59,51 @@ else
 fi
 
 # --------------------------------------------------------------------------------
+# MGN Replication Server Termination
+# MGN launches replication servers outside of Terraform. They must be
+# terminated before destroying the VPC or the destroy will fail on
+# dependency violations (ENIs, security groups still in use).
+# --------------------------------------------------------------------------------
+echo "NOTE: Terminating MGN replication servers in ${MGN_REGION}..."
+
+REPLICATION_SERVER_IDS=$(aws ec2 describe-instances \
+  --region "${MGN_REGION}" \
+  --filters \
+    "Name=tag:Name,Values=AWS Application Migration Service Dedicated Replication Server" \
+    "Name=instance-state-name,Values=pending,running,stopping,stopped" \
+  --query 'Reservations[*].Instances[*].InstanceId' \
+  --output text 2>/dev/null || true)
+
+if [[ -n "${REPLICATION_SERVER_IDS}" ]]; then
+  echo "NOTE: Terminating instances: ${REPLICATION_SERVER_IDS}"
+  aws ec2 terminate-instances \
+    --region "${MGN_REGION}" \
+    --instance-ids ${REPLICATION_SERVER_IDS}
+
+  echo "NOTE: Waiting for replication servers to terminate..."
+  aws ec2 wait instance-terminated \
+    --region "${MGN_REGION}" \
+    --instance-ids ${REPLICATION_SERVER_IDS}
+
+  echo "NOTE: Replication servers terminated."
+else
+  echo "NOTE: No MGN replication servers found."
+fi
+
+# --------------------------------------------------------------------------------
 # Phase 2 — AWS MGN target environment
 # Destroy AWS side first to cleanly remove IAM roles and the Secrets Manager
 # secret before tearing down the source VM.
 # --------------------------------------------------------------------------------
-echo "NOTE: Destroying 02-mgn..."
-terraform -chdir="${SCRIPT_DIR}/02-mgn" init
-terraform -chdir="${SCRIPT_DIR}/02-mgn" destroy -auto-approve
+echo "NOTE: Destroying 01-mgn..."
+terraform -chdir="${SCRIPT_DIR}/01-mgn" init
+terraform -chdir="${SCRIPT_DIR}/01-mgn" destroy -auto-approve
 
 # --------------------------------------------------------------------------------
 # Phase 1 — AWS source environment (us-east-2)
 # --------------------------------------------------------------------------------
-echo "NOTE: Destroying 01-source..."
-terraform -chdir="${SCRIPT_DIR}/01-source" init
-terraform -chdir="${SCRIPT_DIR}/01-source" destroy -auto-approve
+echo "NOTE: Destroying 02-source..."
+terraform -chdir="${SCRIPT_DIR}/02-source" init
+terraform -chdir="${SCRIPT_DIR}/02-source" destroy -auto-approve
 
 echo "NOTE: Teardown complete."

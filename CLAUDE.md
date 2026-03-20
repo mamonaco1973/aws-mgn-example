@@ -8,14 +8,14 @@ This project demonstrates VM migration using **AWS Application Migration Service
 
 ```
 aws-mgn-example/
-├── 01-source/             # Phase 1: EC2 source environment in us-east-2 (Terraform)
+├── 02-source/             # Phase 1: EC2 source environment in us-east-2 (Terraform)
 │   ├── scripts/
 │   │   └── user_data.sh      # VM startup: installs Apache
 │   ├── main.tf               # Provider setup, SSH key pair
 │   ├── network.tf            # VPC, subnet, IGW, route table, security group
 │   ├── vm.tf                 # Ubuntu 24.04 EC2 instance, AMI lookup
 │   └── variables.tf          # prefix, aws_region, vpc_cidr, instance_type
-├── 02-mgn/             # Phase 2: AWS MGN target environment (Terraform)
+├── 01-mgn/             # Phase 2: AWS MGN target environment (Terraform)
 │   ├── scripts/
 │   │   └── init_mgn.sh       # Initializes MGN service via AWS CLI
 │   ├── iam.tf                # IAM roles for MGN replication/conversion/launch
@@ -43,18 +43,18 @@ aws-mgn-example/
 
 ```bash
 ./check_env.sh   # Validate tools and AWS credentials
-./apply.sh       # Deploy 01-source, then 02-mgn (auto-approves)
+./apply.sh       # Deploy 02-source, then 01-mgn (auto-approves)
 ```
 
 ### Destroy
 
 ```bash
-./destroy.sh     # Destroys 02-mgn first, then 01-source
+./destroy.sh     # Destroys 01-mgn first, then 02-source
 ```
 
 ## Phase Details
 
-### Phase 1 — AWS Source (`01-source/`)
+### Phase 1 — AWS Source (`02-source/`)
 
 Creates the migration source in us-east-2:
 - Ubuntu 24.04 LTS EC2 instance (`t3.micro`)
@@ -63,7 +63,7 @@ Creates the migration source in us-east-2:
 - RSA 4096 SSH key written to `../mgn-vm.pem` (gitignored)
 - User-data script installs Apache2
 
-### Phase 2 — AWS MGN (`02-mgn/`)
+### Phase 2 — AWS MGN (`01-mgn/`)
 
 Creates the migration target in us-east-1:
 - VPC `10.50.0.0/16` with Internet Gateway

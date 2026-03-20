@@ -94,11 +94,10 @@ echo "Creating launch configuration template..."
 
 aws mgn create-launch-configuration-template \
   --region "${AWS_REGION}" \
-  --boot-mode UEFI \
   --copy-private-ip \
   --copy-tags \
   --launch-disposition STOPPED \
-  --target-instance-type-right-sizing-method NONE
+  --target-instance-type-right-sizing-method BASIC
 
 # --------------------------------------------------------------
 # Show final state
