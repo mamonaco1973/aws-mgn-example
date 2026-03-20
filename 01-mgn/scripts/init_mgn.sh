@@ -96,8 +96,8 @@ aws mgn create-launch-configuration-template \
   --region "${AWS_REGION}" \
   --copy-private-ip \
   --copy-tags \
-  --launch-disposition STOPPED \
-  --target-instance-type-right-sizing-method BASIC
+  --launch-disposition STARTED \
+  --target-instance-type-right-sizing-method NONE
 
 # --------------------------------------------------------------
 # Show final state

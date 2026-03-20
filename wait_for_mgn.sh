@@ -55,6 +55,28 @@ while true; do
 done
 
 # --------------------------------------------------------------------------------
+# Set Target Instance Type
+# update-launch-configuration is per-source-server — the launch template only
+# controls right-sizing method, not the actual type. Run for all registered
+# servers so the setting is in place before the test launch.
+# --------------------------------------------------------------------------------
+echo "NOTE: Setting target instance type to t3.medium for all source servers..."
+
+ALL_SERVER_IDS=$(aws mgn describe-source-servers \
+  --region "${MGN_REGION}" \
+  --filters isArchived=false \
+  --query 'items[*].sourceServerID' \
+  --output text 2>/dev/null || true)
+
+for SERVER_ID in ${ALL_SERVER_IDS}; do
+  echo "NOTE: Setting instance type for ${SERVER_ID}..."
+  aws mgn update-launch-configuration \
+    --region "${MGN_REGION}" \
+    --source-server-id "${SERVER_ID}" \
+    --target-instance-type t3.medium
+done
+
+# --------------------------------------------------------------------------------
 # Launch Test Instances
 # Only servers in READY_FOR_TEST state get a test launch. Servers already
 # in TESTING or beyond are skipped — prevents duplicate test instances.
