@@ -1,20 +1,33 @@
 #!/bin/bash
+set -euo pipefail
 
-# ------------------------------------------------------------------------------
-# VM bootstrap script (EC2 user-data)
-# - Installs Apache (httpd) web server
-# - Enables and starts the service
-# - Sets a custom landing page to confirm workload identity post-migration
-# - Reads MGN agent credentials from Secrets Manager via instance profile
-# - Downloads and installs the MGN replication agent
-#
-# Amazon Linux 2 uses yum and httpd. Its kernel is maintained by AWS and
-# tested against the MGN agent — no kernel compatibility issues.
-# All output is captured in /var/log/cloud-init-output.log.
-# ------------------------------------------------------------------------------
+LOG=/root/userdata.log
+mkdir -p /root
+touch "$LOG"
+chmod 600 "$LOG"
+exec > >(tee -a "$LOG" | logger -t user-data -s 2>/dev/console) 2>&1
+trap 'echo "ERROR at line $LINENO"; exit 1' ERR
+
+echo "user-data start: $(date -Is)"
 
 MGN_REGION="us-east-1"
 SECRET_NAME="mgn-agent-credentials"
+
+# ================================================================================
+# Network Readiness
+# Poll until DNS and HTTPS are available — user-data runs early and network
+# may not be ready immediately.
+# ================================================================================
+
+for i in {1..60}; do
+  echo "checking network..."
+  if getent hosts awscli.amazonaws.com >/dev/null 2>&1 && \
+     curl -fsS --max-time 5 https://awscli.amazonaws.com/ >/dev/null 2>&1; then
+    echo "network ready after $((i*5))s"
+    break
+  fi
+  sleep 5
+done
 
 # ================================================================================
 # Apache Install
@@ -68,7 +81,7 @@ chmod +x /root/aws-replication-installer-init
 
 # --------------------------------------------------------------------------------
 # Run MGN installer
-# PYTHONUNBUFFERED=1 ensures all output flushes to cloud-init-output.log.
+# PYTHONUNBUFFERED=1 ensures all installer output flushes into the log.
 # --------------------------------------------------------------------------------
 
 echo "MGN: Running replication agent installer..."
@@ -79,4 +92,4 @@ PYTHONUNBUFFERED=1 /root/aws-replication-installer-init \
   --aws-secret-access-key "${SECRET_ACCESS_KEY}" \
   --no-prompt 2>&1
 
-echo "MGN: Agent installation complete. Exit: $?"
+echo "user-data complete: $(date -Is)"
