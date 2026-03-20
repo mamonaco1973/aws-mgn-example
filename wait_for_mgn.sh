@@ -4,17 +4,22 @@ set -euo pipefail
 # ================================================================================
 # wait_for_mgn.sh
 #
-# Polls MGN until all expected source servers reach READY_FOR_TEST state.
-# Run after both Terraform phases have been applied and source VMs are booting.
+# Polls MGN until all expected source servers reach READY_FOR_TEST state,
+# then launches a test instance for each one. Safe to run multiple times —
+# test instances are only launched for servers still in READY_FOR_TEST state.
+# Servers already in TESTING, READY_FOR_CUTOVER, or beyond are skipped.
 #
 # Usage: ./wait_for_mgn.sh
 # ================================================================================
 
 MGN_REGION="us-east-1"
-EXPECTED_SERVERS=1        # Update when adding more source servers
+EXPECTED_SERVERS=2        # Update when adding more source servers
 POLL_INTERVAL=30          # Seconds between MGN status checks
 MAX_WAIT=7200             # Timeout in seconds (2 hours — initial sync can be slow)
 
+# --------------------------------------------------------------------------------
+# Wait for all expected servers to reach READY_FOR_TEST
+# --------------------------------------------------------------------------------
 echo "NOTE: Waiting for ${EXPECTED_SERVERS} MGN source server(s) to reach READY_FOR_TEST..."
 
 ELAPSED=0
@@ -49,4 +54,29 @@ while true; do
 
 done
 
-echo "NOTE: MGN is ready. Proceed with test launch or cutover."
+# --------------------------------------------------------------------------------
+# Launch Test Instances
+# Only servers in READY_FOR_TEST state get a test launch. Servers already
+# in TESTING or beyond are skipped — prevents duplicate test instances.
+# --------------------------------------------------------------------------------
+echo "NOTE: Checking which source servers need a test instance launched..."
+
+SERVERS_TO_TEST=$(aws mgn describe-source-servers \
+  --region "${MGN_REGION}" \
+  --filters isArchived=false \
+  --query "items[?lifeCycle.state=='READY_FOR_TEST'].sourceServerID" \
+  --output text 2>/dev/null || true)
+
+if [[ -z "${SERVERS_TO_TEST}" ]]; then
+  echo "NOTE: No servers in READY_FOR_TEST state — test instances already launched."
+else
+  for SERVER_ID in ${SERVERS_TO_TEST}; do
+    echo "NOTE: Launching test instance for source server ${SERVER_ID}..."
+    aws mgn start-test \
+      --region "${MGN_REGION}" \
+      --source-server-ids "${SERVER_ID}"
+    echo "NOTE: Test instance launched for ${SERVER_ID}."
+  done
+fi
+
+echo "NOTE: Done. Monitor test instance progress in the MGN console."

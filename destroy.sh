@@ -91,6 +91,37 @@ else
 fi
 
 # --------------------------------------------------------------------------------
+# MGN Conversion Server Termination
+# MGN launches conversion servers during cutover outside of Terraform. Terminate
+# them before destroying the VPC to avoid dependency violations.
+# --------------------------------------------------------------------------------
+echo "NOTE: Terminating MGN conversion servers in ${MGN_REGION}..."
+
+CONVERSION_SERVER_IDS=$(aws ec2 describe-instances \
+  --region "${MGN_REGION}" \
+  --filters \
+    "Name=tag:Name,Values=AWS Application Migration Service Conversion Server" \
+    "Name=instance-state-name,Values=pending,running,stopping,stopped" \
+  --query 'Reservations[*].Instances[*].InstanceId' \
+  --output text 2>/dev/null || true)
+
+if [[ -n "${CONVERSION_SERVER_IDS}" ]]; then
+  echo "NOTE: Terminating instances: ${CONVERSION_SERVER_IDS}"
+  aws ec2 terminate-instances \
+    --region "${MGN_REGION}" \
+    --instance-ids ${CONVERSION_SERVER_IDS}
+
+  echo "NOTE: Waiting for conversion servers to terminate..."
+  aws ec2 wait instance-terminated \
+    --region "${MGN_REGION}" \
+    --instance-ids ${CONVERSION_SERVER_IDS}
+
+  echo "NOTE: Conversion servers terminated."
+else
+  echo "NOTE: No MGN conversion servers found."
+fi
+
+# --------------------------------------------------------------------------------
 # Phase 2 — AWS MGN target environment
 # Destroy AWS side first to cleanly remove IAM roles and the Secrets Manager
 # secret before tearing down the source VM.
