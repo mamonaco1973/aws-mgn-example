@@ -59,6 +59,29 @@ else
 fi
 
 # --------------------------------------------------------------------------------
+# MGN Job Cleanup
+# MGN jobs (test launches, cutover launches) are not managed by Terraform.
+# Delete all completed/failed jobs before tearing down MGN resources.
+# --------------------------------------------------------------------------------
+echo "NOTE: Deleting MGN jobs in ${MGN_REGION}..."
+
+JOB_IDS=$(aws mgn describe-jobs \
+  --region "${MGN_REGION}" \
+  --query 'items[*].jobID' \
+  --output text 2>/dev/null || true)
+
+if [[ -n "${JOB_IDS}" ]]; then
+  for JOB_ID in ${JOB_IDS}; do
+    echo "NOTE: Deleting job ${JOB_ID}..."
+    aws mgn delete-job \
+      --region "${MGN_REGION}" \
+      --job-id "${JOB_ID}" 2>/dev/null || true
+  done
+else
+  echo "NOTE: No MGN jobs found."
+fi
+
+# --------------------------------------------------------------------------------
 # MGN Replication Server Termination
 # MGN launches replication servers outside of Terraform. They must be
 # terminated before destroying the VPC or the destroy will fail on
