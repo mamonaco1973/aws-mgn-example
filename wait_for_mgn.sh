@@ -79,4 +79,8 @@ else
   done
 fi
 
+echo "NOTE: Waiting 60 seconds for test servers to start."
+
+sleep 60
+
 echo "NOTE: Done. Monitor test instance progress in the MGN console."

@@ -46,3 +46,10 @@ echo "NOTE: Infrastructure complete. "
 
 echo "NOTE: Waiting for replication to complete."
 ./wait_for_mgn.sh
+
+# --------------------------------------------------------------------------------
+# Phase 4 - Validate replicated servers
+# --------------------------------------------------------------------------------
+
+echo "NOTE: Validating replicated servers."
+./validate.sh
