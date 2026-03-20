@@ -38,4 +38,11 @@ echo "NOTE: Deploying 02-source..."
 terraform -chdir="${SCRIPT_DIR}/02-source" init
 terraform -chdir="${SCRIPT_DIR}/02-source" apply -auto-approve
 
-echo "NOTE: Deployment complete. Run ./wait_for_mgn.sh to monitor replication status."
+echo "NOTE: Infrastructure complete. "
+
+# --------------------------------------------------------------------------------
+# Phase 3 - Wait for servers to register for replication
+# --------------------------------------------------------------------------------
+
+echo "NOTE: Waiting for replication to complete."
+./wait_for_mgn.sh
