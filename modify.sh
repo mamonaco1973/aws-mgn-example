@@ -107,7 +107,7 @@ echo "----------------------------------------------------------------------"
 if [[ -z "${LINUX_ID}" || "${LINUX_ID}" == "None" ]]; then
   echo "  No Linux instance ID found in Terraform state."
 else
-  LINUX_CMD='CURRENT=$(cat /var/www/html/index.html 2>/dev/null || echo ""); BASE="${CURRENT% UPDATED - *}"; NEW="${BASE} UPDATED - '"${TIMESTAMP}"'"; echo "${NEW}" | tee /var/www/html/index.html; echo "Page updated."'
+  LINUX_CMD='echo "Welcome to Apache - Source VM in us-east-2 UPDATED - '"${TIMESTAMP}"'" > /var/www/html/index.html; echo "Page updated."'
   ssm_run "Linux" "${LINUX_ID}" "AWS-RunShellScript" "${LINUX_CMD}"
 fi
 
@@ -121,7 +121,7 @@ echo "----------------------------------------------------------------------"
 if [[ -z "${WINDOWS_ID}" || "${WINDOWS_ID}" == "None" ]]; then
   echo "  No Windows instance ID found in Terraform state."
 else
-  WIN_CMD='$current = (Get-Content "C:\inetpub\wwwroot\iisstart.htm" -Raw -ErrorAction SilentlyContinue).TrimEnd(); $base = $current -replace " UPDATED - .*$", ""; $updated = $base + " UPDATED - '"${TIMESTAMP}"'"; Set-Content -Path "C:\inetpub\wwwroot\iisstart.htm" -Value $updated; Set-Content -Path "C:\inetpub\wwwroot\index.html" -Value $updated; Write-Output "Page updated."'
+  WIN_CMD='$updated = "Welcome to IIS - Windows Server 2019 Source VM in us-east-2 UPDATED - '"${TIMESTAMP}"'"; Set-Content -Path "C:\inetpub\wwwroot\iisstart.htm" -Value $updated; Set-Content -Path "C:\inetpub\wwwroot\index.html" -Value $updated; Write-Output "Page updated."'
   ssm_run "Windows" "${WINDOWS_ID}" "AWS-RunPowerShellScript" "${WIN_CMD}"
 fi
 
