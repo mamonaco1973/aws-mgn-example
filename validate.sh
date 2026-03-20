@@ -24,7 +24,9 @@ check_http() {
   local LABEL="$1"
   local IP="$2"
   printf "  %-45s : " "${LABEL} (${IP})"
-  RESPONSE=$(curl -s --max-time 10 "http://${IP}" 2>/dev/null || true)
+  RESPONSE=$(curl -s --max-time 10 "http://${IP}" 2>/dev/null \
+    | tr -d '\r' | tr '\n' ' ' | sed 's/  */ /g; s/^ //; s/ $//' \
+    | cut -c1-80 || true)
   if [[ -n "${RESPONSE}" ]]; then
     echo "${RESPONSE}"
   else
