@@ -98,3 +98,8 @@ output "windows_public_ip" {
   value       = aws_instance.windows.public_ip
   description = "Public IP address of the Windows source EC2 instance"
 }
+
+output "windows_instance_id" {
+  value       = aws_instance.windows.id
+  description = "Instance ID of the Windows source EC2 instance"
+}

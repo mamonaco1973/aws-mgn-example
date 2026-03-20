@@ -1,0 +1,122 @@
+#!/bin/bash
+set -euo pipefail
+
+# ================================================================================
+# modify.sh
+#
+# Uses SSM Run Command to update the landing page on both source servers.
+# Appends " UPDATED - <timestamp>" to the existing page content so the
+# change is visible in curl output before and after migration.
+#
+# Usage: ./modify.sh
+# ================================================================================
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SOURCE_REGION="us-east-2"
+SSM_WAIT_SECONDS=60   # Max seconds to wait for each SSM command
+
+# --------------------------------------------------------------------------------
+# ssm_run <instance_id> <document> <command>
+# Sends an SSM Run Command and waits for it to complete. Prints command output.
+# --------------------------------------------------------------------------------
+ssm_run() {
+  local INSTANCE_ID="$1"
+  local DOCUMENT="$2"
+  local COMMAND="$3"
+  local LABEL="$4"
+
+  echo "  Sending command to ${LABEL} (${INSTANCE_ID})..."
+
+  COMMAND_ID=$(aws ssm send-command \
+    --region "${SOURCE_REGION}" \
+    --instance-ids "${INSTANCE_ID}" \
+    --document-name "${DOCUMENT}" \
+    --parameters "commands=[\"${COMMAND}\"]" \
+    --query 'Command.CommandId' \
+    --output text)
+
+  echo "  Command ID: ${COMMAND_ID}"
+  echo "  Waiting for completion..."
+
+  aws ssm wait command-executed \
+    --region "${SOURCE_REGION}" \
+    --command-id "${COMMAND_ID}" \
+    --instance-id "${INSTANCE_ID}" 2>/dev/null || true
+
+  STATUS=$(aws ssm get-command-invocation \
+    --region "${SOURCE_REGION}" \
+    --command-id "${COMMAND_ID}" \
+    --instance-id "${INSTANCE_ID}" \
+    --query 'Status' \
+    --output text)
+
+  OUTPUT=$(aws ssm get-command-invocation \
+    --region "${SOURCE_REGION}" \
+    --command-id "${COMMAND_ID}" \
+    --instance-id "${INSTANCE_ID}" \
+    --query 'StandardOutputContent' \
+    --output text 2>/dev/null || true)
+
+  STDERR=$(aws ssm get-command-invocation \
+    --region "${SOURCE_REGION}" \
+    --command-id "${COMMAND_ID}" \
+    --instance-id "${INSTANCE_ID}" \
+    --query 'StandardErrorContent' \
+    --output text 2>/dev/null || true)
+
+  echo "  Status: ${STATUS}"
+  if [[ -n "${OUTPUT}" ]]; then
+    echo "${OUTPUT}" | sed 's/^/    /'
+  fi
+  if [[ -n "${STDERR}" && "${STDERR}" != "None" ]]; then
+    echo "  STDERR:"
+    echo "${STDERR}" | sed 's/^/    /'
+  fi
+  echo ""
+}
+
+# --------------------------------------------------------------------------------
+# Resolve instance IDs from Terraform state
+# --------------------------------------------------------------------------------
+LINUX_ID=$(terraform -chdir="${SCRIPT_DIR}/02-source" output -raw vm_instance_id 2>/dev/null || true)
+WINDOWS_ID=$(terraform -chdir="${SCRIPT_DIR}/02-source" output -raw windows_instance_id 2>/dev/null || true)
+
+TIMESTAMP=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
+
+echo ""
+echo "======================================================================"
+echo "Modify Source Servers — ${SOURCE_REGION}"
+echo "Timestamp: ${TIMESTAMP}"
+echo "======================================================================"
+echo ""
+
+# --------------------------------------------------------------------------------
+# Linux — AWS-RunShellScript
+# Read the current page, append the UPDATED marker, write it back.
+# --------------------------------------------------------------------------------
+echo "Linux (Amazon Linux 2)"
+echo "----------------------------------------------------------------------"
+
+if [[ -z "${LINUX_ID}" || "${LINUX_ID}" == "None" ]]; then
+  echo "  No Linux instance ID found in Terraform state."
+else
+  LINUX_CMD="CURRENT=\$(cat /var/www/html/index.html 2>/dev/null || echo ''); NEW=\"\${CURRENT} UPDATED - ${TIMESTAMP}\"; echo \"\${NEW}\" | tee /var/www/html/index.html; echo \"Page updated.\""
+  ssm_run "${LINUX_ID}" "AWS-RunShellScript" "${LINUX_CMD}" "Linux"
+fi
+
+# --------------------------------------------------------------------------------
+# Windows — AWS-RunPowerShellScript
+# Read the current page, append the UPDATED marker, write it back.
+# --------------------------------------------------------------------------------
+echo "Windows (Server 2019)"
+echo "----------------------------------------------------------------------"
+
+if [[ -z "${WINDOWS_ID}" || "${WINDOWS_ID}" == "None" ]]; then
+  echo "  No Windows instance ID found in Terraform state."
+else
+  WIN_CMD="\$current = Get-Content 'C:\\inetpub\\wwwroot\\iisstart.htm' -Raw -ErrorAction SilentlyContinue; \$updated = \$current.TrimEnd() + ' UPDATED - ${TIMESTAMP}'; Set-Content -Path 'C:\\inetpub\\wwwroot\\iisstart.htm' -Value \$updated; Set-Content -Path 'C:\\inetpub\\wwwroot\\index.html' -Value \$updated; Write-Output 'Page updated.'"
+  ssm_run "${WINDOWS_ID}" "AWS-RunPowerShellScript" "${WIN_CMD}" "Windows"
+fi
+
+echo "Done. Run ./validate.sh to confirm the changes are live."
+echo ""

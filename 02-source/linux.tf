@@ -57,3 +57,8 @@ output "vm_public_ip" {
   value       = aws_instance.main.public_ip
   description = "Public IP address of the source EC2 instance"
 }
+
+output "vm_instance_id" {
+  value       = aws_instance.main.id
+  description = "Instance ID of the Linux source EC2 instance"
+}
