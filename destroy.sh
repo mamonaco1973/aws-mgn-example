@@ -122,6 +122,31 @@ else
 fi
 
 # --------------------------------------------------------------------------------
+# MGN Conversion Server Security Group Deletion
+# MGN creates this security group automatically — it is not managed by
+# Terraform and must be deleted after conversion servers are terminated
+# or the VPC destroy will fail on a dependency violation.
+# --------------------------------------------------------------------------------
+echo "NOTE: Deleting MGN conversion server security group in ${MGN_REGION}..."
+
+CONVERSION_SG_ID=$(aws ec2 describe-security-groups \
+  --region "${MGN_REGION}" \
+  --filters \
+    "Name=group-name,Values=AWS Application Migration Service default Conversion Server Security Group" \
+  --query 'SecurityGroups[0].GroupId' \
+  --output text 2>/dev/null || true)
+
+if [[ -n "${CONVERSION_SG_ID}" && "${CONVERSION_SG_ID}" != "None" ]]; then
+  echo "NOTE: Deleting security group ${CONVERSION_SG_ID}..."
+  aws ec2 delete-security-group \
+    --region "${MGN_REGION}" \
+    --group-id "${CONVERSION_SG_ID}"
+  echo "NOTE: Security group deleted."
+else
+  echo "NOTE: No MGN conversion server security group found."
+fi
+
+# --------------------------------------------------------------------------------
 # Phase 2 — AWS MGN target environment
 # Destroy AWS side first to cleanly remove IAM roles and the Secrets Manager
 # secret before tearing down the source VM.
