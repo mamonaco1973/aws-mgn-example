@@ -68,15 +68,26 @@ echo "======================================================================"
 echo "Target Servers (${TARGET_REGION})"
 echo "======================================================================"
 
-LAUNCHED_IDS=$(aws mgn describe-source-servers \
+# Instance IDs are on the MGN job, not in the lifecycle record.
+# Collect job IDs from lastTest and lastCutover, then resolve instance IDs
+# from each job's participatingServers — same approach as wait_for_mgn.sh.
+JOB_IDS=$(aws mgn describe-source-servers \
   --region "${TARGET_REGION}" \
   --filters isArchived=false \
-  --query 'items[*].[lifeCycle.lastTest.launchedEc2InstanceID,lifeCycle.lastCutover.launchedEc2InstanceID]' \
+  --query 'items[*].[lifeCycle.lastTest.initiated.jobID,lifeCycle.lastCutover.initiated.jobID]' \
   --output text 2>/dev/null \
-  | tr '\t' '\n' \
-  | grep -v '^None$' \
-  | grep -v '^$' \
-  | sort -u || true)
+  | tr '\t' '\n' | grep '^mgnjob-' | sort -u || true)
+
+LAUNCHED_IDS=""
+for JOB_ID in ${JOB_IDS}; do
+  IDS=$(aws mgn describe-jobs \
+    --region "${TARGET_REGION}" \
+    --filters jobIDs="${JOB_ID}" \
+    --query 'items[*].participatingServers[*].launchedEc2InstanceID' \
+    --output text 2>/dev/null | tr '\t' '\n' | grep '^i-' || true)
+  LAUNCHED_IDS=$(printf '%s\n%s' "${LAUNCHED_IDS}" "${IDS}")
+done
+LAUNCHED_IDS=$(echo "${LAUNCHED_IDS}" | grep '^i-' | sort -u || true)
 
 if [[ -z "${LAUNCHED_IDS}" ]]; then
   echo "  No target instances found. Run a test launch or cutover first."
