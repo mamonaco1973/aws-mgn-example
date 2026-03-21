@@ -150,7 +150,7 @@ fi
 echo "NOTE: Waiting for MGN to provision test instances..."
 
 WAIT_ELAPSED=0
-MAX_WAIT_LAUNCH=1800  # 30 min — AMI creation + conversion can be slow
+MAX_WAIT_LAUNCH=3600  # 60 min — AMI creation + conversion can be slow
 
 while true; do
   # Instance IDs are recorded on the MGN job, not in the lifecycle record.
@@ -199,7 +199,7 @@ done
 echo "NOTE: Waiting for test instances to reach running state..."
 
 RUNNING_ELAPSED=0
-MAX_WAIT_RUNNING=1200  # 20 min
+MAX_WAIT_RUNNING=1800  # 30 min
 
 for INSTANCE_ID in ${INSTANCE_IDS}; do
   while true; do
