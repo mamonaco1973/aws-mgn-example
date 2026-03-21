@@ -44,9 +44,8 @@ while true; do
     --output text 2>/dev/null || echo 0)
 
   if [[ "${TESTING}" -gt 0 ]]; then
-    echo "ERROR: ${TESTING} server(s) are already in TESTING state — mark tests as"
-    echo "       complete in the MGN console before re-running this script."
-    exit 1
+    echo "NOTE: ${TESTING} server(s) already in TESTING state — skipping to instance wait."
+    break
   fi
 
   echo "NOTE: Registered: ${TOTAL}/${EXPECTED_SERVERS} — Ready for test: ${READY}/${EXPECTED_SERVERS} (${ELAPSED}s elapsed)"
