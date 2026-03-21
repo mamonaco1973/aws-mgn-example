@@ -94,7 +94,7 @@ echo "Creating launch configuration template..."
 
 aws mgn create-launch-configuration-template \
   --region "${AWS_REGION}" \
-  --copy-private-ip \
+  --no-copy-private-ip \
   --copy-tags \
   --launch-disposition STARTED \
   --target-instance-type-right-sizing-method BASIC

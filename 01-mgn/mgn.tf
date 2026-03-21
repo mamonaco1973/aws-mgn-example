@@ -82,6 +82,7 @@ resource "null_resource" "mgn_initialize" {
     target_security_group_id         = aws_security_group.mgn_target.id
     replication_server_instance_type = var.replication_server_instance_type
     use_private_ip_for_replication   = tostring(var.use_private_ip_for_replication)
+    init_script_hash                 = filesha256("${path.module}/scripts/init_mgn.sh")
   }
 
   # Calls init_mgn.sh which runs `aws mgn initialize-service`,
