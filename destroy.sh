@@ -59,6 +59,47 @@ else
 fi
 
 # --------------------------------------------------------------------------------
+# MGN Test Instance Termination
+# Test instances launched by MGN are not managed by Terraform. Terminate them
+# before destroying the VPC or the destroy will fail on dependency violations.
+# Instance IDs are on the MGN job, not in the lifecycle record.
+# --------------------------------------------------------------------------------
+echo "NOTE: Terminating MGN test instances in ${MGN_REGION}..."
+
+TEST_JOB_IDS=$(aws mgn describe-source-servers \
+  --region "${MGN_REGION}" \
+  --filters '{}' \
+  --query 'items[*].lifeCycle.lastTest.initiated.jobID' \
+  --output text 2>/dev/null | tr '\t' '\n' | grep '^mgnjob-' | sort -u || true)
+
+TEST_INSTANCE_IDS=""
+for JOB_ID in ${TEST_JOB_IDS}; do
+  IDS=$(aws mgn describe-jobs \
+    --region "${MGN_REGION}" \
+    --filters jobIDs="${JOB_ID}" \
+    --query 'items[*].participatingServers[*].launchedEc2InstanceID' \
+    --output text 2>/dev/null | tr '\t' '\n' | grep '^i-' || true)
+  TEST_INSTANCE_IDS=$(printf '%s\n%s' "${TEST_INSTANCE_IDS}" "${IDS}")
+done
+TEST_INSTANCE_IDS=$(echo "${TEST_INSTANCE_IDS}" | grep '^i-' | sort -u || true)
+
+if [[ -n "${TEST_INSTANCE_IDS}" ]]; then
+  echo "NOTE: Terminating test instances: $(echo "${TEST_INSTANCE_IDS}" | tr '\n' ' ')"
+  aws ec2 terminate-instances \
+    --region "${MGN_REGION}" \
+    --instance-ids ${TEST_INSTANCE_IDS} > /dev/null
+
+  echo "NOTE: Waiting for test instances to terminate..."
+  aws ec2 wait instance-terminated \
+    --region "${MGN_REGION}" \
+    --instance-ids ${TEST_INSTANCE_IDS}
+
+  echo "NOTE: Test instances terminated."
+else
+  echo "NOTE: No MGN test instances found."
+fi
+
+# --------------------------------------------------------------------------------
 # MGN Job Cleanup
 # MGN jobs (test launches, cutover launches) are not managed by Terraform.
 # Delete all completed/failed jobs before tearing down MGN resources.
