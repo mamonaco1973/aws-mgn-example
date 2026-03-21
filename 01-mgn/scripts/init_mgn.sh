@@ -97,7 +97,7 @@ aws mgn create-launch-configuration-template \
   --copy-private-ip \
   --copy-tags \
   --launch-disposition STARTED \
-  --target-instance-type-right-sizing-method NONE
+  --target-instance-type-right-sizing-method BASIC
 
 # --------------------------------------------------------------
 # Show final state

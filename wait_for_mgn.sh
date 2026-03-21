@@ -70,18 +70,30 @@ ALL_SERVER_IDS=$(aws mgn describe-source-servers \
 
 for SERVER_ID in ${ALL_SERVER_IDS}; do
   echo "NOTE: Setting instance type for ${SERVER_ID}..."
-  # update-launch-configuration requires --name even when only changing the
-  # instance type — fetch the current value to avoid a BadRequestException.
-  SERVER_NAME=$(aws mgn get-launch-configuration \
+  # MGN creates an EC2 launch template per source server. Instance type must
+  # be set there — update-launch-configuration has no instance type parameter.
+  LT_ID=$(aws mgn get-launch-configuration \
     --region "${MGN_REGION}" \
     --source-server-id "${SERVER_ID}" \
-    --query 'name' \
+    --query 'ec2LaunchTemplateID' \
     --output text 2>/dev/null || true)
-  aws mgn update-launch-configuration \
-    --region "${MGN_REGION}" \
-    --source-server-id "${SERVER_ID}" \
-    --name "${SERVER_NAME}" \
-    --target-instance-type t3.medium
+
+  if [[ -n "${LT_ID}" && "${LT_ID}" != "None" ]]; then
+    NEW_VERSION=$(aws ec2 create-launch-template-version \
+      --region "${MGN_REGION}" \
+      --launch-template-id "${LT_ID}" \
+      --source-version '$Latest' \
+      --launch-template-data '{"instanceType":"t3.medium"}' \
+      --query 'LaunchTemplateVersion.VersionNumber' \
+      --output text)
+    aws ec2 modify-launch-template \
+      --region "${MGN_REGION}" \
+      --launch-template-id "${LT_ID}" \
+      --default-version "${NEW_VERSION}"
+    echo "NOTE: Set t3.medium on launch template ${LT_ID} (version ${NEW_VERSION})."
+  else
+    echo "NOTE: No EC2 launch template found for ${SERVER_ID} — skipping."
+  fi
 done
 
 # --------------------------------------------------------------------------------
