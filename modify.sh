@@ -130,3 +130,4 @@ fi
 
 ./revert.sh
 ./wait_for_mgn.sh
+./validate.sh
