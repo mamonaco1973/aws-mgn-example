@@ -91,13 +91,15 @@ for SERVER_ID in ${TESTING_SERVER_IDS}; do
   # terminate and will reject the request with ConflictException.
   if [[ "${LAUNCH_STATUS}" == "LAUNCHED" && "${EC2_STATE}" != "terminated" && "${EC2_STATE}" != "not-found" ]]; then
     echo "NOTE: Reverting ${SERVER_ID} to READY_FOR_TEST..."
-    if aws mgn terminate-target-instances \
+    TERM_ERR=$(aws mgn terminate-target-instances \
         --region "${MGN_REGION}" \
-        --source-server-ids "${SERVER_ID}" > /dev/null 2>&1; then
+        --source-server-ids "${SERVER_ID}" 2>&1 >/dev/null) && TERM_OK=true || TERM_OK=false
+    if [[ "${TERM_OK}" == "true" ]]; then
       echo "NOTE: Revert initiated for ${SERVER_ID}."
       [[ -n "${INSTANCE_ID}" ]] && INSTANCE_IDS=$(printf '%s\n%s' "${INSTANCE_IDS}" "${INSTANCE_ID}")
     else
-      echo "WARNING: terminate-target-instances failed for ${SERVER_ID} — check MGN console."
+      echo "WARNING: terminate-target-instances failed for ${SERVER_ID}:"
+      echo "         ${TERM_ERR}"
     fi
   else
     echo "WARNING: ${SERVER_ID} cannot be reverted via terminate-target-instances."
