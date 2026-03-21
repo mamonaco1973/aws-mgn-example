@@ -83,7 +83,7 @@ for SERVER_ID in ${ALL_SERVER_IDS}; do
       --region "${MGN_REGION}" \
       --launch-template-id "${LT_ID}" \
       --source-version '$Latest' \
-      --launch-template-data '{"instanceType":"t3.medium"}' \
+      --launch-template-data '{"InstanceType":"t3.medium"}' \
       --query 'LaunchTemplateVersion.VersionNumber' \
       --output text)
     aws ec2 modify-launch-template \
