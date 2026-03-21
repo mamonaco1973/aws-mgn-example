@@ -55,6 +55,43 @@ while true; do
 done
 
 # --------------------------------------------------------------------------------
+# Fix EC2 Launch Templates — Enable Public IP
+# MGN generates per-server EC2 launch templates with AssociatePublicIpAddress
+# false, overriding the subnet's map_public_ip_on_launch setting. Patch each
+# template before launch so test instances are reachable for validation.
+# --------------------------------------------------------------------------------
+echo "NOTE: Enabling public IP on EC2 launch templates for all source servers..."
+
+ALL_SERVER_IDS=$(aws mgn describe-source-servers \
+  --region "${MGN_REGION}" \
+  --filters isArchived=false \
+  --query 'items[*].sourceServerID' \
+  --output text 2>/dev/null || true)
+
+for SERVER_ID in ${ALL_SERVER_IDS}; do
+  LT_ID=$(aws mgn get-launch-configuration \
+    --region "${MGN_REGION}" \
+    --source-server-id "${SERVER_ID}" \
+    --query 'ec2LaunchTemplateID' \
+    --output text 2>/dev/null || true)
+
+  if [[ -n "${LT_ID}" && "${LT_ID}" != "None" ]]; then
+    NEW_VERSION=$(aws ec2 create-launch-template-version \
+      --region "${MGN_REGION}" \
+      --launch-template-id "${LT_ID}" \
+      --source-version '$Latest' \
+      --launch-template-data '{"NetworkInterfaces":[{"DeviceIndex":0,"AssociatePublicIpAddress":true,"DeleteOnTermination":true}]}' \
+      --query 'LaunchTemplateVersion.VersionNumber' \
+      --output text)
+    aws ec2 modify-launch-template \
+      --region "${MGN_REGION}" \
+      --launch-template-id "${LT_ID}" \
+      --default-version "${NEW_VERSION}"
+    echo "NOTE: Enabled public IP on ${LT_ID} for ${SERVER_ID}."
+  fi
+done
+
+# --------------------------------------------------------------------------------
 # Launch Test Instances
 # Only servers in READY_FOR_TEST state get a test launch. Servers already
 # in TESTING or beyond are skipped — prevents duplicate test instances.
@@ -79,8 +116,120 @@ else
   done
 fi
 
-echo "NOTE: Waiting 600 seconds for test servers to start."
+# --------------------------------------------------------------------------------
+# Wait for MGN to Provision Test Instance IDs
+# MGN takes time to create the AMI and launch instances after start-test.
+# Poll until all expected instance IDs appear in the MGN lifecycle record.
+# --------------------------------------------------------------------------------
+echo "NOTE: Waiting for MGN to provision test instances..."
 
-sleep 600
+WAIT_ELAPSED=0
+MAX_WAIT_LAUNCH=1800  # 30 min — AMI creation + conversion can be slow
 
-echo "NOTE: Done. Monitor test instance progress in the MGN console."
+while true; do
+  INSTANCE_IDS=$(aws mgn describe-source-servers \
+    --region "${MGN_REGION}" \
+    --filters isArchived=false \
+    --query 'items[*].lifeCycle.lastTest.launchedEc2InstanceID' \
+    --output text 2>/dev/null \
+    | tr '\t' '\n' | grep '^i-' | sort -u || true)
+
+  ID_COUNT=$(echo "${INSTANCE_IDS}" | grep -c '^i-' 2>/dev/null || echo 0)
+  echo "NOTE: Test instances provisioned: ${ID_COUNT}/${EXPECTED_SERVERS} (${WAIT_ELAPSED}s elapsed)"
+
+  if [[ "${ID_COUNT}" -ge "${EXPECTED_SERVERS}" ]]; then
+    echo "NOTE: All test instances launched."
+    break
+  fi
+
+  if [[ "${WAIT_ELAPSED}" -ge "${MAX_WAIT_LAUNCH}" ]]; then
+    echo "ERROR: Timed out waiting for MGN to launch test instances."
+    exit 1
+  fi
+
+  sleep "${POLL_INTERVAL}"
+  WAIT_ELAPSED=$(( WAIT_ELAPSED + POLL_INTERVAL ))
+done
+
+# --------------------------------------------------------------------------------
+# Wait for Test Instances to Reach Running State
+# Polls EC2 state for each instance. Exits immediately if an instance
+# terminates — no point waiting further if the launch has already failed.
+# --------------------------------------------------------------------------------
+echo "NOTE: Waiting for test instances to reach running state..."
+
+RUNNING_ELAPSED=0
+MAX_WAIT_RUNNING=1200  # 20 min
+
+for INSTANCE_ID in ${INSTANCE_IDS}; do
+  while true; do
+    STATE=$(aws ec2 describe-instances \
+      --region "${MGN_REGION}" \
+      --instance-ids "${INSTANCE_ID}" \
+      --query 'Reservations[0].Instances[0].State.Name' \
+      --output text 2>/dev/null || echo "unknown")
+
+    echo "NOTE: ${INSTANCE_ID} — ${STATE}"
+
+    if [[ "${STATE}" == "running" ]]; then
+      break
+    fi
+
+    if [[ "${STATE}" == "terminated" || "${STATE}" == "shutting-down" ]]; then
+      echo "ERROR: ${INSTANCE_ID} is ${STATE} — check MGN console for details."
+      exit 1
+    fi
+
+    if [[ "${RUNNING_ELAPSED}" -ge "${MAX_WAIT_RUNNING}" ]]; then
+      echo "ERROR: Timed out waiting for ${INSTANCE_ID} to reach running state."
+      exit 1
+    fi
+
+    sleep "${POLL_INTERVAL}"
+    RUNNING_ELAPSED=$(( RUNNING_ELAPSED + POLL_INTERVAL ))
+  done
+done
+
+# --------------------------------------------------------------------------------
+# Wait for HTTP on Port 80
+# Confirms the web server is up and the workload is healthy — the strongest
+# signal that the migration succeeded and the instance is fully operational.
+# --------------------------------------------------------------------------------
+echo "NOTE: Waiting for HTTP on port 80 for all test instances..."
+
+MAX_WAIT_HTTP=1200  # 20 min — Windows boot + IIS startup can be slow
+
+for INSTANCE_ID in ${INSTANCE_IDS}; do
+  PUBLIC_IP=$(aws ec2 describe-instances \
+    --region "${MGN_REGION}" \
+    --instance-ids "${INSTANCE_ID}" \
+    --query 'Reservations[0].Instances[0].PublicIpAddress' \
+    --output text 2>/dev/null || true)
+
+  if [[ -z "${PUBLIC_IP}" || "${PUBLIC_IP}" == "None" ]]; then
+    echo "NOTE: ${INSTANCE_ID} has no public IP — skipping HTTP check."
+    continue
+  fi
+
+  HTTP_ELAPSED=0
+  while true; do
+    RESPONSE=$(curl -s --max-time 5 "http://${PUBLIC_IP}" 2>/dev/null | tr -d '\r' || true)
+
+    if [[ -n "${RESPONSE}" ]]; then
+      echo "NOTE: HTTP OK — ${INSTANCE_ID} (${PUBLIC_IP})"
+      echo "${RESPONSE}" | head -1 | sed 's/^/  /'
+      break
+    fi
+
+    if [[ "${HTTP_ELAPSED}" -ge "${MAX_WAIT_HTTP}" ]]; then
+      echo "WARNING: Timed out waiting for HTTP on ${INSTANCE_ID} (${PUBLIC_IP})"
+      break
+    fi
+
+    echo "NOTE: Waiting for HTTP on ${INSTANCE_ID} (${PUBLIC_IP})... (${HTTP_ELAPSED}s)"
+    sleep "${POLL_INTERVAL}"
+    HTTP_ELAPSED=$(( HTTP_ELAPSED + POLL_INTERVAL ))
+  done
+done
+
+echo "NOTE: Done."
