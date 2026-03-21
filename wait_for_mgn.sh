@@ -153,12 +153,25 @@ WAIT_ELAPSED=0
 MAX_WAIT_LAUNCH=1800  # 30 min — AMI creation + conversion can be slow
 
 while true; do
-  INSTANCE_IDS=$(aws mgn describe-source-servers \
+  # Instance IDs are recorded on the MGN job, not in the lifecycle record.
+  # Collect job IDs from each server's lastTest, then query each job for
+  # the participatingServers launchedEc2InstanceID.
+  JOB_IDS=$(aws mgn describe-source-servers \
     --region "${MGN_REGION}" \
     --filters isArchived=false \
-    --query 'items[*].lifeCycle.lastTest.launchedEc2InstanceID' \
-    --output text 2>/dev/null \
-    | tr '\t' '\n' | grep '^i-' | sort -u || true)
+    --query 'items[*].lifeCycle.lastTest.initiated.jobID' \
+    --output text 2>/dev/null | tr '\t' '\n' | grep '^mgnjob-' | sort -u || true)
+
+  INSTANCE_IDS=""
+  for JOB_ID in ${JOB_IDS}; do
+    IDS=$(aws mgn describe-jobs \
+      --region "${MGN_REGION}" \
+      --filters jobIDs="${JOB_ID}" \
+      --query 'items[*].participatingServers[*].launchedEc2InstanceID' \
+      --output text 2>/dev/null | tr '\t' '\n' | grep '^i-' || true)
+    INSTANCE_IDS=$(printf '%s\n%s' "${INSTANCE_IDS}" "${IDS}")
+  done
+  INSTANCE_IDS=$(echo "${INSTANCE_IDS}" | grep '^i-' | sort -u || true)
 
   ID_COUNT=$(echo "${INSTANCE_IDS}" | grep -c '^i-' 2>/dev/null || true)
   ID_COUNT=${ID_COUNT:-0}
