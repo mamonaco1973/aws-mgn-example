@@ -125,5 +125,8 @@ else
   ssm_run "Windows" "${WINDOWS_ID}" "AWS-RunPowerShellScript" "${WIN_CMD}"
 fi
 
-echo "Done. Run ./validate.sh to confirm the changes are live."
-echo ""
+# Revert test instances and relaunch so the updated source content is
+# captured in the next test snapshot.
+
+./revert.sh
+./wait_for_mgn.sh
