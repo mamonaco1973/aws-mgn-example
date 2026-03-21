@@ -60,15 +60,18 @@ fi
 
 # --------------------------------------------------------------------------------
 # Terminate test instances — moves servers back to READY_FOR_TEST
+# Pass all IDs in a single call so the API validates all of them atomically;
+# calling one-at-a-time causes ConflictException if any server has already
+# left TESTING state between the describe query above and this step.
 # --------------------------------------------------------------------------------
 echo "NOTE: Reverting servers to READY_FOR_TEST..."
 
-for SERVER_ID in ${TESTING_SERVER_IDS}; do
-  aws mgn terminate-target-instances \
-    --region "${MGN_REGION}" \
-    --source-server-ids "${SERVER_ID}" > /dev/null
-  echo "NOTE: Revert initiated for ${SERVER_ID}."
-done
+# shellcheck disable=SC2086
+aws mgn terminate-target-instances \
+  --region "${MGN_REGION}" \
+  --source-server-ids ${TESTING_SERVER_IDS} > /dev/null
+
+echo "NOTE: Revert initiated for: ${TESTING_SERVER_IDS}"
 
 # --------------------------------------------------------------------------------
 # Wait for test instances to reach terminated state
