@@ -25,6 +25,11 @@ output "target_security_group_id" {
   value       = aws_security_group.mgn_target.id
 }
 
+output "public_subnet_id" {
+  description = "Public subnet ID for test and cutover instances"
+  value       = aws_subnet.public.id
+}
+
 # Reminds the operator of the manual step required after Terraform apply
 # completes — the AWS MGN agent must be installed on the Azure source VM.
 output "next_step" {

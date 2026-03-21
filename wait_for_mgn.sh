@@ -66,12 +66,25 @@ while true; do
 done
 
 # --------------------------------------------------------------------------------
-# Fix EC2 Launch Templates — Enable Public IP
+# Fix EC2 Launch Templates — Public IP, Security Group, Subnet
 # MGN generates per-server EC2 launch templates with AssociatePublicIpAddress
-# false, overriding the subnet's map_public_ip_on_launch setting. Patch each
-# template before launch so test instances are reachable for validation.
+# false and no security group, so instances land in the default SG and have
+# no public IP. Patch each template before launch with the correct values
+# from Terraform output so test instances are reachable for validation.
 # --------------------------------------------------------------------------------
-echo "NOTE: Enabling public IP on EC2 launch templates for all source servers..."
+echo "NOTE: Patching EC2 launch templates for all source servers..."
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+SG_ID=$(terraform -chdir="${SCRIPT_DIR}/01-mgn" output -raw target_security_group_id 2>/dev/null || true)
+SUBNET_ID=$(terraform -chdir="${SCRIPT_DIR}/01-mgn" output -raw public_subnet_id 2>/dev/null || true)
+
+if [[ -z "${SG_ID}" || -z "${SUBNET_ID}" ]]; then
+  echo "ERROR: Could not read target_security_group_id or public_subnet_id from 01-mgn outputs."
+  exit 1
+fi
+
+echo "NOTE: Using SG=${SG_ID} Subnet=${SUBNET_ID}"
 
 ALL_SERVER_IDS=$(aws mgn describe-source-servers \
   --region "${MGN_REGION}" \
@@ -87,18 +100,20 @@ for SERVER_ID in ${ALL_SERVER_IDS}; do
     --output text 2>/dev/null || true)
 
   if [[ -n "${LT_ID}" && "${LT_ID}" != "None" ]]; then
+    LT_DATA=$(jq -n --arg sg "${SG_ID}" --arg subnet "${SUBNET_ID}" \
+      '{"NetworkInterfaces":[{"DeviceIndex":0,"AssociatePublicIpAddress":true,"DeleteOnTermination":true,"SubnetId":$subnet,"Groups":[$sg]}]}')
     NEW_VERSION=$(aws ec2 create-launch-template-version \
       --region "${MGN_REGION}" \
       --launch-template-id "${LT_ID}" \
       --source-version '$Latest' \
-      --launch-template-data '{"NetworkInterfaces":[{"DeviceIndex":0,"AssociatePublicIpAddress":true,"DeleteOnTermination":true}]}' \
+      --launch-template-data "${LT_DATA}" \
       --query 'LaunchTemplateVersion.VersionNumber' \
       --output text)
     aws ec2 modify-launch-template \
       --region "${MGN_REGION}" \
       --launch-template-id "${LT_ID}" \
       --default-version "${NEW_VERSION}" > /dev/null
-    echo "NOTE: Enabled public IP on ${LT_ID} for ${SERVER_ID}."
+    echo "NOTE: Patched ${LT_ID} for ${SERVER_ID} (public IP + SG + subnet)."
   fi
 done
 
