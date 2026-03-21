@@ -170,19 +170,20 @@ else
 fi
 
 # --------------------------------------------------------------------------------
-# Phase 2 — AWS MGN target environment
-# Destroy AWS side first to cleanly remove IAM roles and the Secrets Manager
-# secret before tearing down the source VM.
-# --------------------------------------------------------------------------------
-echo "NOTE: Destroying 01-mgn..."
-terraform -chdir="${SCRIPT_DIR}/01-mgn" init
-terraform -chdir="${SCRIPT_DIR}/01-mgn" destroy -auto-approve
-
-# --------------------------------------------------------------------------------
-# Phase 1 — AWS source environment (us-east-2)
+# Phase 2 — AWS source environment (us-east-2)
+# Destroy source instances before MGN infrastructure — reverse of build order.
 # --------------------------------------------------------------------------------
 echo "NOTE: Destroying 02-source..."
 terraform -chdir="${SCRIPT_DIR}/02-source" init
 terraform -chdir="${SCRIPT_DIR}/02-source" destroy -auto-approve
+
+# --------------------------------------------------------------------------------
+# Phase 1 — AWS MGN target environment (us-east-1)
+# Destroy after source instances are gone so IAM roles and Secrets Manager
+# secret are still in place for the MGN cleanup calls above.
+# --------------------------------------------------------------------------------
+echo "NOTE: Destroying 01-mgn..."
+terraform -chdir="${SCRIPT_DIR}/01-mgn" init
+terraform -chdir="${SCRIPT_DIR}/01-mgn" destroy -auto-approve
 
 echo "NOTE: Teardown complete."
