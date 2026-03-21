@@ -37,6 +37,18 @@ while true; do
     --query "length(items[?lifeCycle.state=='READY_FOR_TEST'])" \
     --output text 2>/dev/null || echo 0)
 
+  TESTING=$(aws mgn describe-source-servers \
+    --region "${MGN_REGION}" \
+    --filters isArchived=false \
+    --query "length(items[?lifeCycle.state=='TESTING'])" \
+    --output text 2>/dev/null || echo 0)
+
+  if [[ "${TESTING}" -gt 0 ]]; then
+    echo "ERROR: ${TESTING} server(s) are already in TESTING state — mark tests as"
+    echo "       complete in the MGN console before re-running this script."
+    exit 1
+  fi
+
   echo "NOTE: Registered: ${TOTAL}/${EXPECTED_SERVERS} — Ready for test: ${READY}/${EXPECTED_SERVERS} (${ELAPSED}s elapsed)"
 
   if [[ "${TOTAL}" -ge "${EXPECTED_SERVERS}" && "${READY}" -ge "${EXPECTED_SERVERS}" ]]; then
@@ -86,7 +98,7 @@ for SERVER_ID in ${ALL_SERVER_IDS}; do
     aws ec2 modify-launch-template \
       --region "${MGN_REGION}" \
       --launch-template-id "${LT_ID}" \
-      --default-version "${NEW_VERSION}"
+      --default-version "${NEW_VERSION}" > /dev/null
     echo "NOTE: Enabled public IP on ${LT_ID} for ${SERVER_ID}."
   fi
 done
@@ -111,7 +123,7 @@ else
     echo "NOTE: Launching test instance for source server ${SERVER_ID}..."
     aws mgn start-test \
       --region "${MGN_REGION}" \
-      --source-server-ids "${SERVER_ID}"
+      --source-server-ids "${SERVER_ID}" > /dev/null
     echo "NOTE: Test instance launched for ${SERVER_ID}."
   done
 fi
@@ -134,7 +146,8 @@ while true; do
     --output text 2>/dev/null \
     | tr '\t' '\n' | grep '^i-' | sort -u || true)
 
-  ID_COUNT=$(echo "${INSTANCE_IDS}" | grep -c '^i-' 2>/dev/null || echo 0)
+  ID_COUNT=$(echo "${INSTANCE_IDS}" | grep -c '^i-' 2>/dev/null || true)
+  ID_COUNT=${ID_COUNT:-0}
   echo "NOTE: Test instances provisioned: ${ID_COUNT}/${EXPECTED_SERVERS} (${WAIT_ELAPSED}s elapsed)"
 
   if [[ "${ID_COUNT}" -ge "${EXPECTED_SERVERS}" ]]; then
