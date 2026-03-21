@@ -34,44 +34,82 @@ fi
 echo "NOTE: Found servers to revert: ${TESTING_SERVER_IDS}"
 
 # --------------------------------------------------------------------------------
-# Collect test instance IDs before termination so we can wait on them.
-# Instance IDs are on the MGN job, not in the lifecycle record.
+# For each TESTING server: check the launchStatus in its last test job and
+# the EC2 instance state before attempting termination.
+#
+# terminate-target-instances fails (ConflictException) when:
+#   - launchStatus is IN_PROGRESS  (instance still being converted/launched)
+#   - launchStatus is FAILED       (test instance launch failed — nothing to kill)
+#   - launchStatus is TERMINATED   (instance was terminated outside of MGN)
+#   - a terminate job is already running for this server
+#
+# Calling terminate per-server rather than in a batch lets us skip stuck
+# servers and still revert the healthy ones.
 # --------------------------------------------------------------------------------
-JOB_IDS=$(aws mgn describe-source-servers \
-  --region "${MGN_REGION}" \
-  --filters isArchived=false \
-  --query 'items[*].lifeCycle.lastTest.initiated.jobID' \
-  --output text 2>/dev/null | tr '\t' '\n' | grep '^mgnjob-' | sort -u || true)
-
 INSTANCE_IDS=""
-for JOB_ID in ${JOB_IDS}; do
-  IDS=$(aws mgn describe-jobs \
+
+for SERVER_ID in ${TESTING_SERVER_IDS}; do
+
+  JOB_ID=$(aws mgn describe-source-servers \
     --region "${MGN_REGION}" \
-    --filters jobIDs="${JOB_ID}" \
-    --query 'items[*].participatingServers[*].launchedEc2InstanceID' \
-    --output text 2>/dev/null | tr '\t' '\n' | grep '^i-' || true)
-  INSTANCE_IDS=$(printf '%s\n%s' "${INSTANCE_IDS}" "${IDS}")
+    --filters isArchived=false \
+    --query "items[?sourceServerID=='${SERVER_ID}'].lifeCycle.lastTest.initiated.jobID" \
+    --output text 2>/dev/null | tr '\t' '\n' | grep '^mgnjob-' | head -1 || true)
+
+  LAUNCH_STATUS="UNKNOWN"
+  INSTANCE_ID=""
+
+  if [[ -n "${JOB_ID}" ]]; then
+    LAUNCH_STATUS=$(aws mgn describe-jobs \
+      --region "${MGN_REGION}" \
+      --filters jobIDs="${JOB_ID}" \
+      --query 'items[0].participatingServers[0].launchStatus' \
+      --output text 2>/dev/null || true)
+    LAUNCH_STATUS="${LAUNCH_STATUS:-UNKNOWN}"
+
+    INSTANCE_ID=$(aws mgn describe-jobs \
+      --region "${MGN_REGION}" \
+      --filters jobIDs="${JOB_ID}" \
+      --query 'items[0].participatingServers[0].launchedEc2InstanceID' \
+      --output text 2>/dev/null | grep '^i-' || true)
+  fi
+
+  # Verify the EC2 instance is in a terminable state.
+  EC2_STATE="not-found"
+  if [[ -n "${INSTANCE_ID}" ]]; then
+    EC2_STATE=$(aws ec2 describe-instances \
+      --region "${MGN_REGION}" \
+      --instance-ids "${INSTANCE_ID}" \
+      --query 'Reservations[0].Instances[0].State.Name' \
+      --output text 2>/dev/null || echo "not-found")
+  fi
+
+  echo "NOTE: ${SERVER_ID} — job=${JOB_ID:-none} launchStatus=${LAUNCH_STATUS} instance=${INSTANCE_ID:-none} ec2=${EC2_STATE}"
+
+  # Only call terminate-target-instances when the test instance is LAUNCHED and
+  # the EC2 instance exists. Any other combination means MGN has nothing to
+  # terminate and will reject the request with ConflictException.
+  if [[ "${LAUNCH_STATUS}" == "LAUNCHED" && "${EC2_STATE}" != "terminated" && "${EC2_STATE}" != "not-found" ]]; then
+    echo "NOTE: Reverting ${SERVER_ID} to READY_FOR_TEST..."
+    if aws mgn terminate-target-instances \
+        --region "${MGN_REGION}" \
+        --source-server-ids "${SERVER_ID}" > /dev/null 2>&1; then
+      echo "NOTE: Revert initiated for ${SERVER_ID}."
+      [[ -n "${INSTANCE_ID}" ]] && INSTANCE_IDS=$(printf '%s\n%s' "${INSTANCE_IDS}" "${INSTANCE_ID}")
+    else
+      echo "WARNING: terminate-target-instances failed for ${SERVER_ID} — check MGN console."
+    fi
+  else
+    echo "WARNING: ${SERVER_ID} cannot be reverted via terminate-target-instances."
+    echo "         launchStatus=${LAUNCH_STATUS} ec2=${EC2_STATE}"
+    echo "         If FAILED or TERMINATED: the test instance may have crashed or been"
+    echo "         terminated outside MGN. Disconnect and reconnect the MGN agent to"
+    echo "         reset the server back to READY_FOR_TEST."
+  fi
+
 done
+
 INSTANCE_IDS=$(echo "${INSTANCE_IDS}" | grep '^i-' | sort -u || true)
-
-if [[ -n "${INSTANCE_IDS}" ]]; then
-  echo "NOTE: Test instances to be terminated: $(echo "${INSTANCE_IDS}" | tr '\n' ' ')"
-fi
-
-# --------------------------------------------------------------------------------
-# Terminate test instances — moves servers back to READY_FOR_TEST
-# Pass all IDs in a single call so the API validates all of them atomically;
-# calling one-at-a-time causes ConflictException if any server has already
-# left TESTING state between the describe query above and this step.
-# --------------------------------------------------------------------------------
-echo "NOTE: Reverting servers to READY_FOR_TEST..."
-
-# shellcheck disable=SC2086
-aws mgn terminate-target-instances \
-  --region "${MGN_REGION}" \
-  --source-server-ids ${TESTING_SERVER_IDS} > /dev/null
-
-echo "NOTE: Revert initiated for: ${TESTING_SERVER_IDS}"
 
 # --------------------------------------------------------------------------------
 # Wait for test instances to reach terminated state
