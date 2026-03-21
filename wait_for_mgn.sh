@@ -70,9 +70,17 @@ ALL_SERVER_IDS=$(aws mgn describe-source-servers \
 
 for SERVER_ID in ${ALL_SERVER_IDS}; do
   echo "NOTE: Setting instance type for ${SERVER_ID}..."
+  # update-launch-configuration requires --name even when only changing the
+  # instance type — fetch the current value to avoid a BadRequestException.
+  SERVER_NAME=$(aws mgn get-launch-configuration \
+    --region "${MGN_REGION}" \
+    --source-server-id "${SERVER_ID}" \
+    --query 'name' \
+    --output text 2>/dev/null || true)
   aws mgn update-launch-configuration \
     --region "${MGN_REGION}" \
     --source-server-id "${SERVER_ID}" \
+    --name "${SERVER_NAME}" \
     --target-instance-type t3.medium
 done
 
