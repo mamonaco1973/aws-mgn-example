@@ -59,44 +59,38 @@ else
 fi
 
 # --------------------------------------------------------------------------------
-# MGN Test Instance Termination
-# Test instances launched by MGN are not managed by Terraform. Terminate them
-# before destroying the VPC or the destroy will fail on dependency violations.
-# Instance IDs are on the MGN job, not in the lifecycle record.
+# MGN EC2 Instance Termination
+# MGN tags every instance it launches (test instances, replication servers,
+# conversion servers) with AWSApplicationMigrationServiceManaged=mgn.amazonaws.com.
+# Terminate them all in one pass before destroying the VPC or the destroy will
+# fail on dependency violations.
 # --------------------------------------------------------------------------------
-echo "NOTE: Terminating MGN test instances in ${MGN_REGION}..."
+echo "NOTE: Terminating all MGN-managed EC2 instances in ${MGN_REGION}..."
 
-TEST_JOB_IDS=$(aws mgn describe-source-servers \
+MGN_INSTANCE_IDS=$(aws ec2 describe-instances \
   --region "${MGN_REGION}" \
-  --filters '{}' \
-  --query 'items[*].lifeCycle.lastTest.initiated.jobID' \
-  --output text 2>/dev/null | tr '\t' '\n' | grep '^mgnjob-' | sort -u || true)
+  --filters \
+    "Name=tag:AWSApplicationMigrationServiceManaged,Values=mgn.amazonaws.com" \
+    "Name=instance-state-name,Values=pending,running,stopping,stopped" \
+  --query 'Reservations[*].Instances[*].InstanceId' \
+  --output text 2>/dev/null | tr '\t' '\n' | grep '^i-' | sort -u || true)
 
-TEST_INSTANCE_IDS=""
-for JOB_ID in ${TEST_JOB_IDS}; do
-  IDS=$(aws mgn describe-jobs \
-    --region "${MGN_REGION}" \
-    --filters jobIDs="${JOB_ID}" \
-    --query 'items[*].participatingServers[*].launchedEc2InstanceID' \
-    --output text 2>/dev/null | tr '\t' '\n' | grep '^i-' || true)
-  TEST_INSTANCE_IDS=$(printf '%s\n%s' "${TEST_INSTANCE_IDS}" "${IDS}")
-done
-TEST_INSTANCE_IDS=$(echo "${TEST_INSTANCE_IDS}" | grep '^i-' | sort -u || true)
-
-if [[ -n "${TEST_INSTANCE_IDS}" ]]; then
-  echo "NOTE: Terminating test instances: $(echo "${TEST_INSTANCE_IDS}" | tr '\n' ' ')"
+if [[ -n "${MGN_INSTANCE_IDS}" ]]; then
+  echo "NOTE: Terminating instances: $(echo "${MGN_INSTANCE_IDS}" | tr '\n' ' ')"
+  # shellcheck disable=SC2086
   aws ec2 terminate-instances \
     --region "${MGN_REGION}" \
-    --instance-ids ${TEST_INSTANCE_IDS} > /dev/null
+    --instance-ids ${MGN_INSTANCE_IDS} > /dev/null
 
-  echo "NOTE: Waiting for test instances to terminate..."
+  echo "NOTE: Waiting for instances to terminate..."
+  # shellcheck disable=SC2086
   aws ec2 wait instance-terminated \
     --region "${MGN_REGION}" \
-    --instance-ids ${TEST_INSTANCE_IDS}
+    --instance-ids ${MGN_INSTANCE_IDS}
 
-  echo "NOTE: Test instances terminated."
+  echo "NOTE: All MGN-managed instances terminated."
 else
-  echo "NOTE: No MGN test instances found."
+  echo "NOTE: No MGN-managed instances found."
 fi
 
 # --------------------------------------------------------------------------------
@@ -120,69 +114,6 @@ if [[ -n "${JOB_IDS}" ]]; then
   done
 else
   echo "NOTE: No MGN jobs found."
-fi
-
-# --------------------------------------------------------------------------------
-# MGN Replication Server Termination
-# MGN launches replication servers outside of Terraform. They must be
-# terminated before destroying the VPC or the destroy will fail on
-# dependency violations (ENIs, security groups still in use).
-# --------------------------------------------------------------------------------
-echo "NOTE: Terminating MGN replication servers in ${MGN_REGION}..."
-
-REPLICATION_SERVER_IDS=$(aws ec2 describe-instances \
-  --region "${MGN_REGION}" \
-  --filters \
-    "Name=tag:Name,Values=AWS Application Migration Service Dedicated Replication Server" \
-    "Name=instance-state-name,Values=pending,running,stopping,stopped" \
-  --query 'Reservations[*].Instances[*].InstanceId' \
-  --output text 2>/dev/null || true)
-
-if [[ -n "${REPLICATION_SERVER_IDS}" ]]; then
-  echo "NOTE: Terminating instances: ${REPLICATION_SERVER_IDS}"
-  aws ec2 terminate-instances \
-    --region "${MGN_REGION}" \
-    --instance-ids ${REPLICATION_SERVER_IDS}
-
-  echo "NOTE: Waiting for replication servers to terminate..."
-  aws ec2 wait instance-terminated \
-    --region "${MGN_REGION}" \
-    --instance-ids ${REPLICATION_SERVER_IDS}
-
-  echo "NOTE: Replication servers terminated."
-else
-  echo "NOTE: No MGN replication servers found."
-fi
-
-# --------------------------------------------------------------------------------
-# MGN Conversion Server Termination
-# MGN launches conversion servers during cutover outside of Terraform. Terminate
-# them before destroying the VPC to avoid dependency violations.
-# --------------------------------------------------------------------------------
-echo "NOTE: Terminating MGN conversion servers in ${MGN_REGION}..."
-
-CONVERSION_SERVER_IDS=$(aws ec2 describe-instances \
-  --region "${MGN_REGION}" \
-  --filters \
-    "Name=tag:Name,Values=AWS Application Migration Service Conversion Server" \
-    "Name=instance-state-name,Values=pending,running,stopping,stopped" \
-  --query 'Reservations[*].Instances[*].InstanceId' \
-  --output text 2>/dev/null || true)
-
-if [[ -n "${CONVERSION_SERVER_IDS}" ]]; then
-  echo "NOTE: Terminating instances: ${CONVERSION_SERVER_IDS}"
-  aws ec2 terminate-instances \
-    --region "${MGN_REGION}" \
-    --instance-ids ${CONVERSION_SERVER_IDS}
-
-  echo "NOTE: Waiting for conversion servers to terminate..."
-  aws ec2 wait instance-terminated \
-    --region "${MGN_REGION}" \
-    --instance-ids ${CONVERSION_SERVER_IDS}
-
-  echo "NOTE: Conversion servers terminated."
-else
-  echo "NOTE: No MGN conversion servers found."
 fi
 
 # --------------------------------------------------------------------------------
