@@ -43,8 +43,10 @@ INSTANCE_IDS=$(aws ec2 describe-instances \
   --filters \
     "Name=tag:AWSApplicationMigrationServiceManaged,Values=mgn.amazonaws.com" \
     "Name=instance-state-name,Values=pending,running,stopping,stopped" \
-  --query 'Reservations[*].Instances[*].InstanceId' \
-  --output text 2>/dev/null | tr '\t' '\n' | grep '^i-' | sort -u || true)
+  --query 'Reservations[*].Instances[*].[InstanceId,Tags[?Key==`Name`].Value|[0]]' \
+  --output text 2>/dev/null \
+  | awk '$2 !~ /Conversion|Replication/ {print $1}' \
+  | grep '^i-' | sort -u || true)
 
 if [[ -n "${INSTANCE_IDS}" ]]; then
   echo "NOTE: Test instances to be terminated: $(echo "${INSTANCE_IDS}" | tr '\n' ' ')"
