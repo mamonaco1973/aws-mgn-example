@@ -14,7 +14,7 @@ set -euo pipefail
 # --------------------------------------------------------------------------------
 echo "NOTE: Validating that required commands are found in your PATH."
 
-commands=("aws" "terraform")
+commands=("aws" "terraform" "jq")
 all_found=true
 
 for cmd in "${commands[@]}"; do
