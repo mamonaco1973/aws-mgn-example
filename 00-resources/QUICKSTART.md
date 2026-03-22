@@ -1,6 +1,6 @@
 #AWS #MGN #ApplicationMigrationService #Terraform #CloudMigration #LiftAndShift #EC2
 
-*AWS Application Migration Service (MGN) – Quick Start*
+*AWS Server Migration – MGN Quick Start*
 
 GitHub
 

@@ -1,6 +1,6 @@
 #AWS #MGN #ApplicationMigrationService #Terraform #CloudMigration #LiftAndShift #EC2
 
-Automate Server Migration with AWS Application Migration Service (MGN) and Terraform
+*AWS Application Migration Service (MGN) – End-to-End Migration Example*
 
 In this video, we build a fully automated server migration demo using AWS Application Migration Service (MGN) — Amazon's agent-based block-level replication service for lifting and shifting servers between AWS regions.
 
@@ -40,7 +40,7 @@ https://github.com/mamonaco1973/aws-mgn-example/blob/main/README.md
 Timestamps
 
 00:00 Introduction
-01:30 Architecture 
-03:00 Build the Code
-04:15 Build Results
-07:00 Demo
+00:22 Architecture 
+01:15 Build the Code
+01:32 Build Results
+02:10 Demo
