@@ -45,7 +45,7 @@ INSTANCE_IDS=$(aws ec2 describe-instances \
     "Name=instance-state-name,Values=pending,running,stopping,stopped" \
   --query 'Reservations[*].Instances[*].[InstanceId,Tags[?Key==`Name`].Value|[0]]' \
   --output text 2>/dev/null \
-  | awk '$2 !~ /Conversion|Replication/ {print $1}' \
+  | awk -F'\t' '$2 !~ /Conversion|Replication/ {print $1}' \
   | grep '^i-' | sort -u || true)
 
 if [[ -n "${INSTANCE_IDS}" ]]; then
