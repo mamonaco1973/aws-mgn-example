@@ -53,7 +53,7 @@ else
 fi
 
 if [[ -n "${WINDOWS_IP}" && "${WINDOWS_IP}" != "None" ]]; then
-  check_http "Windows Server 2019" "${WINDOWS_IP}"
+  check_http "Windows Server 2022" "${WINDOWS_IP}"
 else
   echo "  Windows: no IP found in Terraform state"
 fi

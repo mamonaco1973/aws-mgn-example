@@ -22,7 +22,7 @@ What This Quick Start Deploys
 • MGN replication and launch templates in us-east-1
 • Two-phase Terraform deployment — landing zone first, source environment second
 • Amazon Linux 2 instance running Apache (us-east-2 source)
-• Windows Server 2019 instance running IIS (us-east-2 source)
+• Windows Server 2022 instance running IIS (us-east-2 source)
 • MGN replication agents installed automatically at boot via EC2 user-data
 • Agent credentials stored and retrieved securely from AWS Secrets Manager
 • IAM service roles under the /service-role/ path required for MGN PassRole

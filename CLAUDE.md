@@ -4,7 +4,7 @@
 
 This project demonstrates VM migration using **AWS Application Migration Service
 (MGN)**. Two EC2 source instances in **us-east-2** (Amazon Linux 2 + Windows
-Server 2019) are replicated to **us-east-1** via block-level replication. Using
+Server 2022) are replicated to **us-east-1** via block-level replication. Using
 same-cloud cross-region migration keeps the demo self-contained and avoids the
 OS kernel compatibility issues present in cross-cloud migrations.
 
@@ -29,7 +29,7 @@ aws-mgn-example/
 ├── 02-source/                 # Phase 2: EC2 source environment (us-east-2)
 │   ├── scripts/
 │   │   ├── user_data.sh       # Amazon Linux 2: installs httpd + MGN agent
-│   │   └── user_data.ps1      # Windows Server 2019: installs IIS + MGN agent
+│   │   └── user_data.ps1      # Windows Server 2022: installs IIS + MGN agent
 │   ├── iam.tf                 # EC2 instance profile:
 │   │                          #   AmazonSSMManagedInstanceCore
 │   │                          #   secretsmanager:GetSecretValue (scoped)
@@ -38,7 +38,7 @@ aws-mgn-example/
 │   ├── main.tf                # AWS provider, SSH key pair, key file output
 │   ├── network.tf             # VPC 10.1.0.0/16, subnet, IGW, security group
 │   ├── variables.tf
-│   └── windows.tf             # Windows Server 2019 EC2 (t3.medium), separate
+│   └── windows.tf             # Windows Server 2022 EC2 (t3.medium), separate
 │                              #   security group (RDP + HTTP),
 │                              #   outputs: windows_public_ip, windows_instance_id
 ├── apply.sh                   # Deploy 01-mgn then 02-source, then block on
@@ -105,9 +105,9 @@ aws-mgn-example/
 - **Amazon Linux 2** (`t3.medium`) — MGN agent installed via `user_data.sh`
   at boot. Uses AWS-maintained kernel — no kernel compilation issues.
   Landing page: `"Welcome to Apache :: Source VM in us-east-2"`
-- **Windows Server 2019** (`t3.medium`) — MGN agent installed via
+- **Windows Server 2022** (`t3.medium`) — MGN agent installed via
   `user_data.ps1` at boot (AWS CLI installed first, then IIS, then agent).
-  Landing page: `"Welcome to IIS :: Windows Server 2019 Source VM in us-east-2"`
+  Landing page: `"Welcome to IIS :: Windows Server 2022 Source VM in us-east-2"`
 - EC2 instance profile provides SSM + scoped Secrets Manager read so
   user-data can retrieve agent credentials without embedded keys
 - RSA 4096 SSH key written to `../mgn-vm.pem` (gitignored)

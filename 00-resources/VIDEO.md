@@ -4,7 +4,7 @@
 
 In this video, we build a fully automated server migration demo using AWS Application Migration Service (MGN) — Amazon's agent-based block-level replication service for lifting and shifting servers between AWS regions.
 
-Two EC2 source instances in us-east-2 — an Amazon Linux 2 server running Apache and a Windows Server 2019 server running IIS — are continuously replicated to us-east-1 using MGN's block-level replication engine. The entire environment is provisioned with Terraform and driven end-to-end by shell scripts, from agent installation through test launch and validation.
+Two EC2 source instances in us-east-2 — an Amazon Linux 2 server running Apache and a Windows Server 2022 server running IIS — are continuously replicated to us-east-1 using MGN's block-level replication engine. The entire environment is provisioned with Terraform and driven end-to-end by shell scripts, from agent installation through test launch and validation.
 
 This project mirrors how MGN is used in real migrations: a landing zone is prepared first, agents register and begin syncing, test instances validate the workload in the target region, and live source changes are replicated continuously without downtime.
 
@@ -24,7 +24,7 @@ Resources Deployed
 - VPC 10.50.0.0/16 with public and MGN staging subnets (us-east-1)
 - VPC 10.1.0.0/16 with public subnet and internet gateway (us-east-2)
 - Amazon Linux 2 EC2 instance running Apache (us-east-2 source)
-- Windows Server 2019 EC2 instance running IIS (us-east-2 source)
+- Windows Server 2022 EC2 instance running IIS (us-east-2 source)
 - IAM service roles for replication, conversion, and launched instances
 - IAM user mgn-agent-user with agent installation policy
 - AWS Secrets Manager secret storing MGN agent credentials

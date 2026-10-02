@@ -19,7 +19,7 @@
         <mxCell id="4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E65100;strokeColor=#BF360C;fontColor=#ffffff;fontSize=12;arcSize=6;" value="&lt;b&gt;Amazon Linux 2&lt;/b&gt;&lt;br&gt;Apache HTTP Server&lt;br&gt;&lt;font style=&#39;font-size:9px;&#39; color=&#39;#FFE0B2&#39;&gt;MGN replication agent installed via user-data&lt;/font&gt;" vertex="1">
           <mxGeometry height="90" width="250" x="60" y="155" as="geometry" />
         </mxCell>
-        <mxCell id="5" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E65100;strokeColor=#BF360C;fontColor=#ffffff;fontSize=12;arcSize=6;" value="&lt;b&gt;Windows Server 2019&lt;/b&gt;&lt;br&gt;IIS Web Server&lt;br&gt;&lt;font style=&#39;font-size:9px;&#39; color=&#39;#FFE0B2&#39;&gt;MGN replication agent installed via user-data&lt;/font&gt;" vertex="1">
+        <mxCell id="5" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E65100;strokeColor=#BF360C;fontColor=#ffffff;fontSize=12;arcSize=6;" value="&lt;b&gt;Windows Server 2022&lt;/b&gt;&lt;br&gt;IIS Web Server&lt;br&gt;&lt;font style=&#39;font-size:9px;&#39; color=&#39;#FFE0B2&#39;&gt;MGN replication agent installed via user-data&lt;/font&gt;" vertex="1">
           <mxGeometry height="90" width="250" x="60" y="330" as="geometry" />
         </mxCell>
         <mxCell id="6" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EDE7F6;strokeColor=#7B1FA2;fontColor=#232F3E;fontSize=12;arcSize=6;" value="&lt;b&gt;EC2 Instance Profile&lt;/b&gt;&lt;br&gt;&lt;font style=&#39;font-size:9px&#39;&gt;AmazonSSMManagedInstanceCore&lt;br&gt;secretsmanager:GetSecretValue&lt;/font&gt;" vertex="1">
@@ -55,7 +55,7 @@
         <mxCell id="15" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2E7D32;strokeColor=#1B5E20;fontColor=#ffffff;fontSize=12;arcSize=6;" value="&lt;b&gt;Migrated Linux Instance&lt;/b&gt;&lt;br&gt;Amazon Linux 2&lt;br&gt;Apache HTTP Server" vertex="1">
           <mxGeometry height="90" width="205" x="685" y="370" as="geometry" />
         </mxCell>
-        <mxCell id="16" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2E7D32;strokeColor=#1B5E20;fontColor=#ffffff;fontSize=12;arcSize=6;" value="&lt;b&gt;Migrated Windows Instance&lt;/b&gt;&lt;br&gt;Windows Server 2019&lt;br&gt;IIS Web Server" vertex="1">
+        <mxCell id="16" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2E7D32;strokeColor=#1B5E20;fontColor=#ffffff;fontSize=12;arcSize=6;" value="&lt;b&gt;Migrated Windows Instance&lt;/b&gt;&lt;br&gt;Windows Server 2022&lt;br&gt;IIS Web Server" vertex="1">
           <mxGeometry height="90" width="200" x="910" y="370" as="geometry" />
         </mxCell>
         <mxCell id="17" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F9A825;strokeColor=#F57F17;fontColor=#232F3E;fontSize=12;arcSize=6;" value="&lt;b&gt;validate.sh&lt;/b&gt;&lt;br&gt;&lt;font style=&#39;font-size:9px&#39;&gt;curl HTTP — checks source&lt;br&gt;and target workloads&lt;/font&gt;" vertex="1">

@@ -9,7 +9,7 @@ $SecretName  = "mgn-agent-credentials"
 
 # ================================================================================
 # Network Readiness
-# Poll until outbound HTTPS is available — user-data runs early and the
+# Poll until outbound HTTPS is available -- user-data runs early and the
 # network stack may not be fully ready immediately after boot.
 # ================================================================================
 
@@ -53,10 +53,10 @@ Install-WindowsFeature -Name Web-Server -IncludeManagementTools
 
 # ================================================================================
 # Landing Page
-# Landing page text changes after cutover — makes migration success obvious.
+# Landing page text changes after cutover -- makes migration success obvious.
 # ================================================================================
 
-$Page = "Welcome to IIS :: Windows Server 2019 Source VM in us-east-2"
+$Page = "Welcome to IIS :: Windows Server 2022 Source VM in us-east-2"
 Set-Content -Path "C:\inetpub\wwwroot\iisstart.htm" -Value $Page
 Set-Content -Path "C:\inetpub\wwwroot\index.html"   -Value $Page
 
@@ -80,7 +80,7 @@ $AccessKeyId     = $SecretJson.access_key_id
 $SecretAccessKey = $SecretJson.secret_access_key
 
 if (-not $AccessKeyId -or -not $SecretAccessKey) {
-  Write-Host "MGN: ERROR — failed to parse credentials from secret '$SecretName'."
+  Write-Host "MGN: ERROR -- failed to parse credentials from secret '$SecretName'."
   Stop-Transcript
   exit 1
 }
@@ -90,7 +90,7 @@ Write-Host "MGN: Credentials retrieved for key ID: $AccessKeyId"
 # ================================================================================
 # Local Admin Account
 # Creates a local administrator using the MGN agent username and secret access
-# key as the password — allows RDP access for debugging without storing a
+# key as the password -- allows RDP access for debugging without storing a
 # separate credential.
 # ================================================================================
 

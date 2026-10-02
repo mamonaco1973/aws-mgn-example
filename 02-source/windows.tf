@@ -1,9 +1,10 @@
 # ================================================================================
-# Windows Server 2019 AMI — us-east-2
+# Windows Server 2022 AMI — us-east-2
 #
-# Resolved dynamically from the Amazon account (801119661308). 2019 is the
-# more realistic migration source — represents the generation of Windows
-# servers organisations are actively looking to move off.
+# Resolved dynamically from the Amazon account (801119661308). 2022 rather
+# than 2019 keeps the demo current for longer (Microsoft support to October
+# 2031 vs January 2029) while still being a realistic migration source; MGN
+# supports it with the same agent and no extra prerequisites.
 # ================================================================================
 
 data "aws_ami" "windows" {
@@ -12,7 +13,7 @@ data "aws_ami" "windows" {
 
   filter {
     name   = "name"
-    values = ["Windows_Server-2019-English-Full-Base-*"]
+    values = ["Windows_Server-2022-English-Full-Base-*"]
   }
 
   filter {
@@ -65,7 +66,7 @@ resource "aws_security_group" "windows" {
 # ================================================================================
 # Windows Source EC2 Instance — us-east-2
 #
-# Windows Server 2019. User-data installs IIS so the workload can be verified
+# Windows Server 2022. User-data installs IIS so the workload can be verified
 # before and after migration. t3.medium — Windows requires more memory than
 # the t3.micro used for the Linux instance.
 # ================================================================================

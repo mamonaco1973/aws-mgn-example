@@ -15,7 +15,7 @@ Key capabilities demonstrated:
    us-east-2 to us-east-1 using MGN's continuous block-level replication,
    with no downtime during sync.
 2. **Heterogeneous Source Fleet** — Migrates both an Amazon Linux 2 instance
-   running Apache and a Windows Server 2019 instance running IIS in the same
+   running Apache and a Windows Server 2022 instance running IIS in the same
    migration wave.
 3. **Fully Automated Agent Installation** — MGN replication agents are
    installed automatically at boot via EC2 user-data scripts, with credentials
@@ -127,7 +127,7 @@ When the deployment completes, the following resources are created:
   - VPC `10.1.0.0/16` with public subnet and internet gateway
   - **Amazon Linux 2** EC2 instance (`t3.medium`) running Apache; user-data
     installs the MGN Linux replication agent automatically at boot
-  - **Windows Server 2019** EC2 instance (`t3.medium`) running IIS; user-data
+  - **Windows Server 2022** EC2 instance (`t3.medium`) running IIS; user-data
     installs AWS CLI, IIS, and the MGN Windows replication agent automatically
     at boot
   - IAM instance profile granting SSM Session Manager access and scoped
@@ -168,10 +168,10 @@ Source Servers (us-east-2)
     Welcome to Apache
     Source VM in us-east-2
 
-  Windows Server 2019 (5.6.7.8):
+  Windows Server 2022 (5.6.7.8):
 
     Welcome to IIS
-    Windows Server 2019 Source VM in us-east-2
+    Windows Server 2022 Source VM in us-east-2
 
 ======================================================================
 Target Servers (us-east-1)
@@ -204,7 +204,7 @@ Linux (Amazon Linux 2)
   Status: Success
     Page updated.
 
-Windows (Server 2019)
+Windows (Server 2022)
 ----------------------------------------------------------------------
   Sending command to Windows (i-yyyyyyyyyy)...
   Command ID: yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy
