@@ -14,7 +14,7 @@ Key capabilities demonstrated:
 1. **Cross-Region Server Migration** — Replicates live EC2 instances from
    us-east-2 to us-east-1 using MGN's continuous block-level replication,
    with no downtime during sync.
-2. **Heterogeneous Source Fleet** — Migrates both an Amazon Linux 2 instance
+2. **Heterogeneous Source Fleet** — Migrates both an Amazon Linux 2023 instance
    running Apache and a Windows Server 2022 instance running IIS in the same
    migration wave.
 3. **Fully Automated Agent Installation** — MGN replication agents are
@@ -125,7 +125,7 @@ When the deployment completes, the following resources are created:
 
 - **Source Environment (us-east-2):**
   - VPC `10.1.0.0/16` with public subnet and internet gateway
-  - **Amazon Linux 2** EC2 instance (`t3.medium`) running Apache; user-data
+  - **Amazon Linux 2023** EC2 instance (`t3.medium`) running Apache; user-data
     installs the MGN Linux replication agent automatically at boot
   - **Windows Server 2022** EC2 instance (`t3.medium`) running IIS; user-data
     installs AWS CLI, IIS, and the MGN Windows replication agent automatically
@@ -163,7 +163,7 @@ both source and target:
 ======================================================================
 Source Servers (us-east-2)
 ======================================================================
-  Linux (Amazon Linux 2) (1.2.3.4):
+  Linux (Amazon Linux 2023) (1.2.3.4):
 
     Welcome to Apache
     Source VM in us-east-2
@@ -197,7 +197,7 @@ Modify Source Servers — us-east-2
 Timestamp: 2026-03-20T16:29:28Z
 ======================================================================
 
-Linux (Amazon Linux 2)
+Linux (Amazon Linux 2023)
 ----------------------------------------------------------------------
   Sending command to Linux (i-xxxxxxxxxx)...
   Command ID: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx

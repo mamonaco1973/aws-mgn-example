@@ -47,7 +47,7 @@ LINUX_IP=$(terraform -chdir="${SCRIPT_DIR}/02-source" output -raw vm_public_ip 2
 WINDOWS_IP=$(terraform -chdir="${SCRIPT_DIR}/02-source" output -raw windows_public_ip 2>/dev/null || true)
 
 if [[ -n "${LINUX_IP}" && "${LINUX_IP}" != "None" ]]; then
-  check_http "Linux (Amazon Linux 2)" "${LINUX_IP}"
+  check_http "Linux (Amazon Linux 2023)" "${LINUX_IP}"
 else
   echo "  Linux: no IP found in Terraform state"
 fi

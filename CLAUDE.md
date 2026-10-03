@@ -3,7 +3,7 @@
 ## Project Overview
 
 This project demonstrates VM migration using **AWS Application Migration Service
-(MGN)**. Two EC2 source instances in **us-east-2** (Amazon Linux 2 + Windows
+(MGN)**. Two EC2 source instances in **us-east-2** (Amazon Linux 2023 + Windows
 Server 2022) are replicated to **us-east-1** via block-level replication. Using
 same-cloud cross-region migration keeps the demo self-contained and avoids the
 OS kernel compatibility issues present in cross-cloud migrations.
@@ -28,12 +28,12 @@ aws-mgn-example/
 │   └── variables.tf
 ├── 02-source/                 # Phase 2: EC2 source environment (us-east-2)
 │   ├── scripts/
-│   │   ├── user_data.sh       # Amazon Linux 2: installs httpd + MGN agent
+│   │   ├── user_data.sh       # Amazon Linux 2023: installs httpd + MGN agent
 │   │   └── user_data.ps1      # Windows Server 2022: installs IIS + MGN agent
 │   ├── iam.tf                 # EC2 instance profile:
 │   │                          #   AmazonSSMManagedInstanceCore
 │   │                          #   secretsmanager:GetSecretValue (scoped)
-│   ├── linux.tf               # Amazon Linux 2 EC2 (t3.medium), AMI lookup,
+│   ├── linux.tf               # Amazon Linux 2023 EC2 (t3.medium), AMI lookup,
 │   │                          #   outputs: vm_public_ip, vm_instance_id
 │   ├── main.tf                # AWS provider, SSH key pair, key file output
 │   ├── network.tf             # VPC 10.1.0.0/16, subnet, IGW, security group
@@ -102,7 +102,7 @@ aws-mgn-example/
 ### Phase 2 — Source Environment (`02-source/`) — us-east-2
 
 - VPC `10.1.0.0/16`, single public subnet, internet gateway
-- **Amazon Linux 2** (`t3.medium`) — MGN agent installed via `user_data.sh`
+- **Amazon Linux 2023** (`t3.medium`) — MGN agent installed via `user_data.sh`
   at boot. Uses AWS-maintained kernel — no kernel compilation issues.
   Landing page: `"Welcome to Apache :: Source VM in us-east-2"`
 - **Windows Server 2022** (`t3.medium`) — MGN agent installed via

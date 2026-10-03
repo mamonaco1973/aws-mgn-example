@@ -1,18 +1,18 @@
 # ================================================================================
-# Amazon Linux 2 AMI — us-east-2
+# Amazon Linux 2023 AMI — us-east-2
 #
-# Resolved dynamically from the Amazon account (137112412989). Amazon Linux 2
-# uses a kernel maintained and tested by AWS alongside the MGN agent — no
-# kernel compilation issues or version ceiling problems.
+# Resolved dynamically from the Amazon account (137112412989). Amazon Linux 2023
+# is on the MGN supported OS list with no kernel restrictions. The pattern
+# excludes the "minimal" AMI, which lacks packages the user-data relies on.
 # ================================================================================
 
-data "aws_ami" "amzn2" {
+data "aws_ami" "al2023" {
   most_recent = true
   owners      = ["137112412989"] # Amazon
 
   filter {
     name   = "name"
-    values = ["amzn2-ami-hvm-*-x86_64-gp2"]
+    values = ["al2023-ami-2023.*-x86_64"]
   }
 
   filter {
@@ -24,12 +24,12 @@ data "aws_ami" "amzn2" {
 # ================================================================================
 # Source EC2 Instance — us-east-2
 #
-# Amazon Linux 2. User-data installs Apache (httpd) so the workload can be
+# Amazon Linux 2023. User-data installs Apache (httpd) so the workload can be
 # verified before and after migration.
 # ================================================================================
 
 resource "aws_instance" "main" {
-  ami                    = data.aws_ami.amzn2.id
+  ami                    = data.aws_ami.al2023.id
   instance_type          = var.instance_type
   key_name               = aws_key_pair.vm_key.key_name
   subnet_id              = aws_subnet.main.id

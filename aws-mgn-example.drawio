@@ -16,7 +16,7 @@
         <mxCell id="3" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F4EBFF;strokeColor=#8C4FFF;strokeWidth=2;verticalAlign=top;fontSize=12;fontColor=#6B2D9E;fontStyle=1;" value="VPC   10.1.0.0/16" vertex="1">
           <mxGeometry height="500" width="290" x="40" y="110" as="geometry" />
         </mxCell>
-        <mxCell id="4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E65100;strokeColor=#BF360C;fontColor=#ffffff;fontSize=12;arcSize=6;" value="&lt;b&gt;Amazon Linux 2&lt;/b&gt;&lt;br&gt;Apache HTTP Server&lt;br&gt;&lt;font style=&#39;font-size:9px;&#39; color=&#39;#FFE0B2&#39;&gt;MGN replication agent installed via user-data&lt;/font&gt;" vertex="1">
+        <mxCell id="4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E65100;strokeColor=#BF360C;fontColor=#ffffff;fontSize=12;arcSize=6;" value="&lt;b&gt;Amazon Linux 2023&lt;/b&gt;&lt;br&gt;Apache HTTP Server&lt;br&gt;&lt;font style=&#39;font-size:9px;&#39; color=&#39;#FFE0B2&#39;&gt;MGN replication agent installed via user-data&lt;/font&gt;" vertex="1">
           <mxGeometry height="90" width="250" x="60" y="155" as="geometry" />
         </mxCell>
         <mxCell id="5" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E65100;strokeColor=#BF360C;fontColor=#ffffff;fontSize=12;arcSize=6;" value="&lt;b&gt;Windows Server 2022&lt;/b&gt;&lt;br&gt;IIS Web Server&lt;br&gt;&lt;font style=&#39;font-size:9px;&#39; color=&#39;#FFE0B2&#39;&gt;MGN replication agent installed via user-data&lt;/font&gt;" vertex="1">
@@ -52,7 +52,7 @@
         <mxCell id="14" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#2E7D32;strokeWidth=2;verticalAlign=top;fontSize=12;fontColor=#1B5E20;fontStyle=1;" value="VPC   10.50.0.0/16" vertex="1">
           <mxGeometry height="325" width="462" x="668" y="290" as="geometry" />
         </mxCell>
-        <mxCell id="15" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2E7D32;strokeColor=#1B5E20;fontColor=#ffffff;fontSize=12;arcSize=6;" value="&lt;b&gt;Migrated Linux Instance&lt;/b&gt;&lt;br&gt;Amazon Linux 2&lt;br&gt;Apache HTTP Server" vertex="1">
+        <mxCell id="15" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2E7D32;strokeColor=#1B5E20;fontColor=#ffffff;fontSize=12;arcSize=6;" value="&lt;b&gt;Migrated Linux Instance&lt;/b&gt;&lt;br&gt;Amazon Linux 2023&lt;br&gt;Apache HTTP Server" vertex="1">
           <mxGeometry height="90" width="205" x="685" y="370" as="geometry" />
         </mxCell>
         <mxCell id="16" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2E7D32;strokeColor=#1B5E20;fontColor=#ffffff;fontSize=12;arcSize=6;" value="&lt;b&gt;Migrated Windows Instance&lt;/b&gt;&lt;br&gt;Windows Server 2022&lt;br&gt;IIS Web Server" vertex="1">

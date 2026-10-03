@@ -74,7 +74,7 @@ echo "MGN: Credentials retrieved for key ID: ${ACCESS_KEY_ID}"
 
 echo "MGN: Downloading replication agent installer..."
 
-wget -q -O /root/aws-replication-installer-init \
+curl -fsSL -o /root/aws-replication-installer-init \
   "https://aws-application-migration-service-${MGN_REGION}.s3.${MGN_REGION}.amazonaws.com/latest/linux/aws-replication-installer-init"
 
 chmod +x /root/aws-replication-installer-init

@@ -101,7 +101,7 @@ echo ""
 # Linux — AWS-RunShellScript
 # Read the current page, append the UPDATED marker, write it back.
 # --------------------------------------------------------------------------------
-echo "Linux (Amazon Linux 2)"
+echo "Linux (Amazon Linux 2023)"
 echo "----------------------------------------------------------------------"
 
 if [[ -z "${LINUX_ID}" || "${LINUX_ID}" == "None" ]]; then
