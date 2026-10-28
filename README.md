@@ -1,62 +1,69 @@
-# AWS Application Migration Service (MGN) Demo
+# AWS Application Migration Service (MGN): Cross-Region Lift and Shift
 
-This project delivers a fully automated demonstration of **AWS Application
-Migration Service (MGN)** — Amazon's agent-based block-level replication
-service for lifting and shifting servers between AWS regions.
+An end-to-end demo of **AWS Application Migration Service (MGN)**, AWS's
+agent-based, block-level replication service for rehosting servers. Two
+source servers in **us-east-2**, an Amazon Linux 2023 web server and a
+Windows Server 2022 IIS server, install the MGN agent at boot and replicate
+continuously to **us-east-1**, where the scripts launch test instances from
+them and check that the same web pages come up.
 
-It uses **Terraform** and **shell scripts** to provision both the source
-environment (us-east-2) and the MGN target environment (us-east-1), install
-MGN agents automatically via EC2 user-data, and drive the full migration
-lifecycle through test launch and cutover.
-
-Key capabilities demonstrated:
-
-1. **Cross-Region Server Migration** — Replicates live EC2 instances from
-   us-east-2 to us-east-1 using MGN's continuous block-level replication,
-   with no downtime during sync.
-2. **Heterogeneous Source Fleet** — Migrates both an Amazon Linux 2023 instance
-   running Apache and a Windows Server 2022 instance running IIS in the same
-   migration wave.
-3. **Fully Automated Agent Installation** — MGN replication agents are
-   installed automatically at boot via EC2 user-data scripts, with credentials
-   pulled securely from AWS Secrets Manager using the instance's IAM profile.
-4. **Infrastructure as Code** — Two-phase Terraform deployment provisions the
-   MGN target environment first (VPC, IAM, replication templates), then the
-   source environment (VPCs, EC2 instances) — mirroring real-world sequencing
-   where the landing zone is prepared before agents connect.
-5. **Migration Lifecycle Automation** — Shell scripts handle the full MGN
-   lifecycle: waiting for replication readiness, launching test instances,
-   validating workloads via HTTP, and tearing down all resources in the correct
-   dependency order.
-
-Together, these components form a **self-contained, end-to-end migration
-demo** that exercises the complete MGN workflow — from initial agent
-registration through test launch and cutover validation.
+| Piece | Where | Role |
+|---|---|---|
+| **mgn-source** (Linux) | us-east-2, `mgn-source-subnet` | Amazon Linux 2023, `t3.medium`; Apache; user data installs the MGN Linux agent |
+| **Windows source** | us-east-2, `mgn-source-subnet` | Windows Server 2022, `t3.medium`; IIS; user data installs the AWS CLI, IIS and the MGN Windows agent |
+| **Source VPC** | us-east-2, `10.1.0.0/16` | one public subnet (`10.1.1.0/24`); SSH, RDP and HTTP open; instance role with SSM and read access to the agent secret |
+| **MGN service** | us-east-1 | initialized by `scripts/init_mgn.sh`, which replaces any existing replication and launch configuration templates |
+| **Replication template** | us-east-1 | dedicated `t3.medium` replication servers in `mgn-staging-subnet`, `PUBLIC_IP` data plane routing with a public IP, GP3 staging disks, default EBS encryption, no bandwidth limit |
+| **Launch template** | us-east-1 | launch started, copy tags, don't copy private IPs, basic right-sizing; `wait_for_mgn.sh` points each server's EC2 launch template at `mgn-public-subnet` with a public IP |
+| **MGN VPC** | us-east-1, `10.50.0.0/16` | `mgn-public-subnet` (`10.50.1.0/24`) and `mgn-staging-subnet` (`10.50.2.0/24`), both routed to the internet gateway; `mgn-target-sg` opens 22, 3389, 80 and 1500 |
+| **IAM** | global | the MGN service roles (`AWSApplicationMigrationReplicationServerRole`, `…ConversionServerRole`, `…MGHRole`, `…LaunchInstanceWithDrsRole`, `…LaunchInstanceWithSsmRole`, `…AgentRole`) and the `mgn-agent-user` user with `AWSApplicationMigrationAgentInstallationPolicy` |
+| **mgn-agent-credentials** | Secrets Manager, us-east-1 | the agent user's access key |
 
 ## Architecture
 
-![diagram](aws-mgn-example.png)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="architecture-dark.svg">
+  <img alt="An Amazon Linux 2023 server running Apache and a Windows Server 2022 server running IIS in us-east-2 read an IAM access key from Secrets Manager in us-east-1 at boot and install the AWS MGN replication agent, which registers with Application Migration Service in us-east-1. MGN launches a replication server in the staging subnet, and the agents stream block-level changes to it over TCP port 1500 on its public IP. When both servers are ready for testing, wait_for_mgn.sh points each server's launch template at the public subnet and starts a test launch, which converts the replicated disks into test instances with public IPs. modify.sh changes the source web pages through SSM Run Command to show that replication is continuous." src="architecture-light.svg">
+</picture>
 
+Regenerate with `python3 make_diagram.py`.
 
-## MGN Migration Lifecycle
+- **`01-mgn/`** (us-east-1): the MGN VPC and security group, the IAM roles,
+  the agent user and its secret, and `scripts/init_mgn.sh`, which Terraform
+  runs to initialize MGN and create the templates.
+- **`02-source/`** (us-east-2): the source VPC, both instances and their
+  user data, the instance role, and an SSH key pair (written to
+  `mgn-vm.pem` in the repository root).
+- **`wait_for_mgn.sh`**, **`validate.sh`**, **`modify.sh`**,
+  **`revert.sh`**: the migration lifecycle (below).
 
-| Stage | Description |
+The landing zone comes first: the MGN templates and roles have to exist
+before the agents connect.
+
+## The migration lifecycle
+
+| State | Meaning |
 |---|---|
-| `NOT_READY` | Agent installed; initial sync in progress |
-| `READY_FOR_TEST` | Full sync complete; test launch available |
-| `TESTING` | Test instance running in us-east-1 |
-| `READY_FOR_CUTOVER` | Test complete; production cutover available |
-| `CUTOVER` | Production instance running in us-east-1 |
+| `NOT_READY` | agent installed; initial sync in progress |
+| `READY_FOR_TEST` | initial sync complete; a test launch is available |
+| `TESTING` | a test instance is running in us-east-1 |
+| `READY_FOR_CUTOVER` | testing finished; cutover is available |
+| `CUTOVER` | the production instance is running in us-east-1 |
 
-## Two-Phase Terraform Deployment
+The scripts take the servers as far as `TESTING`:
 
-| Phase | Directory | Region | Purpose |
-|---|---|---|---|
-| 1 | `01-mgn/` | us-east-1 | VPC, IAM roles, MGN replication and launch templates |
-| 2 | `02-source/` | us-east-2 | Source VPC, EC2 instances, IAM instance profile |
-
-Phase 1 must complete before Phase 2 so MGN templates and IAM roles exist
-when the agents connect.
+- **`wait_for_mgn.sh`** polls every 30 seconds, up to two hours, until two
+  source servers are registered and `READY_FOR_TEST`. It then patches each
+  server's EC2 launch template with `mgn-public-subnet`, `mgn-target-sg` and
+  a public IP, and runs `start-test` for every server still in
+  `READY_FOR_TEST`, so it's safe to run again.
+- **`validate.sh`** curls each source server (IPs from Terraform state) and
+  each MGN-launched instance in us-east-1.
+- **`modify.sh`** rewrites both source pages through SSM Run Command,
+  adding `UPDATED <timestamp>`.
+- **`revert.sh`** terminates the test instances and moves the servers in
+  `TESTING` back to `READY_FOR_TEST`, so `wait_for_mgn.sh` can launch fresh
+  ones from the latest replicated data.
 
 ## Prerequisites
 
@@ -65,101 +72,22 @@ when the agents connect.
 * [Install Terraform](https://developer.hashicorp.com/terraform/install)
 * [Install jq](https://jqlang.github.io/jq/download/)
 
-If this is your first time following along, we recommend starting with this
-video:
-**[AWS + Terraform: Easy Setup](https://www.youtube.com/watch?v=9clW3VQLyxA)**
-— it walks through configuring your AWS credentials, Terraform backend, and
-CLI environment.
+If this is your first time watching our content, we recommend starting with
+this video: [AWS + Terraform: Easy Setup](https://www.youtube.com/watch?v=9clW3VQLyxA).
 
-## Download this Repository
+## Deploy
 
 ```bash
 git clone https://github.com/mamonaco1973/aws-mgn-example.git
 cd aws-mgn-example
+./apply.sh
 ```
 
-## Build the Code
+`apply.sh` runs `check_env.sh`, applies `01-mgn` and `02-source`, runs
+`wait_for_mgn.sh` (initial replication usually takes 30 to 60 minutes),
+then `validate.sh`:
 
-Run [check_env.sh](check_env.sh) to validate your environment, then run
-[apply.sh](apply.sh) to provision all infrastructure and wait for MGN
-replication to complete.
-
-```bash
-~/aws-mgn-example$ ./apply.sh
-NOTE: Running environment validation...
-NOTE: aws is found in the current PATH.
-NOTE: terraform is found in the current PATH.
-NOTE: jq is found in the current PATH.
-NOTE: All required commands are available.
-NOTE: Successfully logged into AWS.
-NOTE: Deploying 01-mgn...
-NOTE: Deploying 02-source...
-NOTE: Waiting for 2 MGN source server(s) to reach READY_FOR_TEST...
-NOTE: Registered: 2/2 — Ready for test: 0/2 (0s elapsed)
-...
-NOTE: All 2 source server(s) are READY_FOR_TEST.
-NOTE: Launching test instance for source server s-xxxxxxxxxx...
-NOTE: Launching test instance for source server s-yyyyyyyyyy...
 ```
-
-`apply.sh` blocks until both source servers complete initial replication
-(typically 30–60 minutes) and automatically launches a test instance for each.
-
-### Build Results
-
-When the deployment completes, the following resources are created:
-
-- **MGN Target Environment (us-east-1):**
-  - VPC `10.50.0.0/16` with public subnet and dedicated MGN staging subnet
-  - Security group with TCP 1500 inbound open — required for MGN block-level
-    replication traffic from cross-region source agents
-  - IAM service roles for replication servers, conversion servers, and
-    launched instances — all under the `/service-role/` path required for MGN's
-    service-linked role PassRole permission
-  - IAM user `mgn-agent-user` with
-    `AWSApplicationMigrationAgentInstallationPolicy`; access key stored in
-    Secrets Manager as `mgn-agent-credentials`
-  - MGN replication template configured with `PUBLIC_IP` data plane routing
-    — required for cross-region replication without a VPN or Direct Connect
-  - MGN launch template targeting the us-east-1 VPC and subnet
-
-- **Source Environment (us-east-2):**
-  - VPC `10.1.0.0/16` with public subnet and internet gateway
-  - **Amazon Linux 2023** EC2 instance (`t3.medium`) running Apache; user-data
-    installs the MGN Linux replication agent automatically at boot
-  - **Windows Server 2022** EC2 instance (`t3.medium`) running IIS; user-data
-    installs AWS CLI, IIS, and the MGN Windows replication agent automatically
-    at boot
-  - IAM instance profile granting SSM Session Manager access and scoped
-    Secrets Manager read — used by user-data to retrieve agent credentials
-    without embedding keys in the image
-
-- **Automation Scripts:**
-  - [`apply.sh`](apply.sh) — deploys both Terraform phases, then blocks on
-    MGN replication readiness before launching test instances
-  - [`destroy.sh`](destroy.sh) — cleanly tears down all resources in reverse
-    dependency order: disconnects and deletes MGN source servers, deletes MGN
-    jobs, terminates replication and conversion servers, removes the MGN
-    conversion security group, then destroys both Terraform phases
-  - [`wait_for_mgn.sh`](wait_for_mgn.sh) — polls MGN until all expected source
-    servers reach `READY_FOR_TEST`, then launches a test instance for each
-    (idempotent — skips servers already in `TESTING` or beyond)
-  - [`validate.sh`](validate.sh) — curls the HTTP workload on all source and
-    target servers; source IPs come from Terraform state, target IPs are
-    resolved from MGN's launched instance records
-  - [`modify.sh`](modify.sh) — uses AWS SSM Run Command to update the landing
-    page on both source servers, appending a timestamp; demonstrates that
-    MGN replication is continuous and target instances reflect source changes
-    after the next sync cycle
-
-## Validate the Migration
-
-After test instances are running, validate that workloads are accessible on
-both source and target:
-
-```bash
-~/aws-mgn-example$ ./validate.sh
-
 ======================================================================
 Source Servers (us-east-2)
 ======================================================================
@@ -182,64 +110,56 @@ Target Servers (us-east-1)
     Source VM in us-east-2
 ```
 
-## Modify Source Workloads
+## Try it
 
-Use [`modify.sh`](modify.sh) to update the landing pages on both source servers
-via SSM. This demonstrates that MGN continuously replicates changes from source
-to target — re-running `validate.sh` after a sync cycle will show the updated
-content on target instances as well.
+1. Change the source pages:
 
-```bash
-~/aws-mgn-example$ ./modify.sh
+   ```bash
+   ./modify.sh
+   ```
 
-======================================================================
-Modify Source Servers — us-east-2
-Timestamp: 2026-03-20T16:29:28Z
-======================================================================
+2. The test instances were launched from the earlier data, so they still
+   show the old pages. Launch new ones from the latest replicated data:
 
-Linux (Amazon Linux 2023)
-----------------------------------------------------------------------
-  Sending command to Linux (i-xxxxxxxxxx)...
-  Command ID: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-  Status: Success
-    Page updated.
+   ```bash
+   ./revert.sh
+   ./wait_for_mgn.sh
+   ./validate.sh
+   ```
 
-Windows (Server 2022)
-----------------------------------------------------------------------
-  Sending command to Windows (i-yyyyyyyyyy)...
-  Command ID: yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy
-  Status: Success
-    Page updated.
+   The targets now show the update too:
 
-Done. Run ./validate.sh to confirm the changes are live.
-```
+   ```
+       Welcome to Apache
+       Source VM in us-east-2
+       UPDATED 2026-03-20T16:29:28Z
+   ```
 
-After running `modify.sh`, validate output will show:
+3. Connect to a source server with SSM, or with SSH as `ec2-user` and
+   `mgn-vm.pem`, and look at the agent's progress in the MGN console under
+   **Source servers**.
 
-```
-    Welcome to Apache
-    Source VM in us-east-2
-    UPDATED 2026-03-20T16:29:28Z
-```
-
-## Destroy
+## Teardown
 
 ```bash
-~/aws-mgn-example$ ./destroy.sh
-NOTE: Cleaning up MGN source servers in us-east-1...
-NOTE: Disconnecting source server s-xxxxxxxxxx...
-NOTE: Archiving source server s-xxxxxxxxxx...
-NOTE: Deleting source server s-xxxxxxxxxx...
-NOTE: Deleting MGN jobs in us-east-1...
-NOTE: Terminating MGN replication servers in us-east-1...
-NOTE: Terminating MGN conversion servers in us-east-1...
-NOTE: Deleting MGN conversion server security group in us-east-1...
-NOTE: Destroying 01-mgn...
-NOTE: Destroying 02-source...
-NOTE: Teardown complete.
+./destroy.sh
 ```
 
-`destroy.sh` must clean up MGN-managed resources (source servers, jobs,
-replication servers, conversion servers, and the auto-created conversion
-security group) before Terraform can destroy the VPC — these resources are
-created by MGN outside of Terraform and will block VPC deletion if left behind.
+MGN creates resources outside Terraform that block deleting the VPC, so
+`destroy.sh` first disconnects, archives and deletes the source servers,
+terminates the MGN-launched instances (test, replication and conversion
+servers), deletes the MGN jobs and the conversion security group, and only
+then destroys `02-source` and `01-mgn`.
+
+## Notes
+
+- **Lab only.** SSH, RDP and HTTP are open to `0.0.0.0/0` on the source
+  servers and on `mgn-target-sg`, and so is the replication port 1500.
+- The agents authenticate with a long-lived IAM user access key, read from
+  Secrets Manager at boot.
+- The Windows user data also creates a local Administrators account named
+  after the agent user, with the **secret access key as its password**
+  (labelled as a debug account).
+- `init_mgn.sh` deletes any existing MGN replication and launch templates in
+  us-east-1 before creating its own, which would affect other MGN work in
+  the same account and region.
